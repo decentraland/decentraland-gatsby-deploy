@@ -80,10 +80,6 @@ if (!target) {
 const output_file = resolve(dirname(dirname(__filename)), target)
 
 let pulumi_dir = cwd
-if (!pulumi_dir.endsWith('/.ci')) {
-  pulumi_dir = resolve(pulumi_dir, './.ci')
-}
-
 function getPulumi() {
   const pulumi_file = resolve(pulumi_dir, `./Pulumi.yml`)
   ensureFile(pulumi_file)
