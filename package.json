@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/decentraland/decentraland-growth-ui.git"
+    "url": "git+https://github.com/decentraland/decentraland-gatsby-deploy.git"
   },
   "jest": {
     "preset": "ts-jest",
@@ -39,9 +39,9 @@
     "ci": false
   },
   "bugs": {
-    "url": "https://github.com/decentraland/decentraland-growth-ui/issues"
+    "url": "https://github.com/decentraland/decentraland-gatsby-deploy/issues"
   },
-  "homepage": "https://github.com/decentraland/decentraland-growth-ui#readme",
+  "homepage": "https://github.com/decentraland/decentraland-gatsby-deploy#readme",
   "devDependencies": {
     "@types/isomorphic-fetch": "0.0.35",
     "@types/jest": "^25.1.3",
