@@ -203,7 +203,8 @@ export async function buildGatsby(config: GatsbyOptions) {
     // requests for "foo/" to "foo/index.html".
     website: {
       indexDocument: "index.html",
-      errorDocument: "404.html"
+      errorDocument: "404.html",
+      // routingRules: []
     },
 
     corsRules: [
@@ -301,11 +302,11 @@ export async function buildGatsby(config: GatsbyOptions) {
     },
 
     // A complex type that controls whether access logs are written for the distribution.
-    loggingConfig: {
-      bucket: logsBucketDomainName,
-      includeCookies: false,
-      prefix: `${serviceDomain}/`,
-    },
+    // loggingConfig: {
+    //   bucket: logsBucketDomainName,
+    //   includeCookies: false,
+    //   prefix: `${serviceDomain}/`,
+    // },
   }));
 
   const record = createRecordForCloudfront(serviceName, decentralandDomain, cdn)
