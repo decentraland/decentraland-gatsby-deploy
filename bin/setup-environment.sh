@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+export PATH="$PATH:$HOME/.pulumi/bin"
+
 PULUMI_PATH="$1"
 if [ "$PULUMI_PATH" = "" ]; then
   PULUMI_PATH=$PWD
