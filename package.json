@@ -3,7 +3,9 @@
   "version": "0.0.0-development",
   "description": "Common Gastby deploy tools",
   "bin": {
-    "setup-environment": "./bin/setup-environment.sh"
+    "setup-environment": "./bin/setup-environment.sh",
+    "setup-stack": "./bin/setup-stack.sh",
+    "setup-bucket": "./bin/setup-bucket.sh"
   },
   "scripts": {
     "test": "jest",
