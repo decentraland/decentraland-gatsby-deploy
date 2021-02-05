@@ -38,4 +38,6 @@ if (missing.length > 0) {
   console.log(yellow(`    npm install ${installs}`))
   console.log(yellow(`    npm install --save-exact ${dependency.name}@${dependency.version}`))
   console.log()
+
+  process.exit(1)
 }

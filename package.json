@@ -10,7 +10,7 @@
   "scripts": {
     "test": "jest",
     "build": "rm -rf dist && tsc -p . -outDir dist --sourceMap false --skipLibCheck",
-    "postinstall": "node bin/check-packages.js",
+    "prepare": "node bin/check-packages.js",
     "semantic-release": "semantic-release"
   },
   "repository": {
