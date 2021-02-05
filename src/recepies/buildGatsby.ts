@@ -195,7 +195,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     );
   }
 
-  // const userAndBucket = createBucketWithUser(`builder-assetpacks-${env}`)
+  const contentRoutingRules = routingRules(config.contentRoutingRules)
   // contentBucket is the S3 bucket that the website's contents will be stored in.
   const contentBucket = new aws.s3.Bucket(`${serviceName}-website`, {
     acl: "public-read",
@@ -205,7 +205,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     website: {
       indexDocument: "index.html",
       errorDocument: "404.html",
-      routingRules: routingRules(config.contentRoutingRules)
+      ...(contentRoutingRules.length > 0 && { routingRules: contentRoutingRules })
     },
 
     corsRules: [

@@ -38,10 +38,10 @@ export type GatsbyOptions = {
    *
    * ```typescript
    *    {
-   *      '/docs/*': '/documentation/',
+   *      '/agora/*': '/dao/',
    *      '/docs/*': '/documentation/$1',
-   *      '/builder/*': 'https://builder.decentraland.org/',
-   *      '/builder/*': ''https://builder.decentraland.org/$1'
+   *      '/avatars/*': 'https://builder.decentraland.org/names/',
+   *      '/builder/*': 'https://builder.decentraland.org/$1'
    *    }
    * ```
    */
