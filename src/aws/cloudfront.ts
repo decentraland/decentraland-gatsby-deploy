@@ -173,3 +173,72 @@ export function serverBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadB
 export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
   return serverBehavior(alb, '/*').apply(({ pathPattern, ...behavior }) => behavior)
 }
+
+/******************************************************************
+    USING HTTP ENDPOINTS IN A CLOUDFRONT DISTRIBUTION
+ *******************************************************************/
+
+/**
+ * Crates a `aws.types.input.cloudfront.DistributionOrigin` for a url, if is listed en the `origins` prop
+ * of a `aws.cloudfront.Distribution` allows you to use that http endpoint as a target for a request,
+ * if you include a path in your endpoint all requerst will use it as a basepath, this means that if you config
+ * `https://docs.decentraland.co/legacy`each time  a user request for `https://example.decentraland.org/docs/eth/index.html`
+ *  cloudfront will request `https://docs.decentraland.co/legacy/docs/eth/index.html`
+ */
+export function httpOrigin(enpoint: string | Output<string>): Output<aws.types.input.cloudfront.DistributionOrigin> {
+  return all([ enpoint ])
+  .apply(([endpoint]) => {
+      const url = new URL(endpoint)
+      return {
+        originId: url.hostname + url.pathname,
+        domainName: url.hostname,
+        originPath: url.pathname,
+        customOriginConfig: {
+          originProtocolPolicy: url.protocol === 'https:' ? 'https-only' : 'http-only',
+          httpPort: 80,
+          httpsPort: 443,
+          originSslProtocols: ["TLSv1.2"],
+        }
+      }
+  })
+}
+
+/**
+ * Creates a `aws.types.input.cloudfront.DistributionOrderedCacheBehavior` using an url and a `pathPatther`,
+ * If is listed in the `orderedCacheBehaviors` prop of a `aws.cloudfront.Distribution` routes all the request
+ * that match `pathPattern` to the same path in the endpoint and prevent cloudfonrt to cache the result
+ *
+ * > !IMPORTANT you can use a path in yout endpoint and it will be used as a basepath,
+ * > please check the `httpOrigin` function
+ *
+ * > !IMPORTANT in order to use a alb as the `orderedCacheBehaviors` prop you need to
+ * > list it in the `origins` prop, please check the `httpOrigin` function
+ *
+ * @param pathPattern - pattern use by cloudfront yo match request
+ * @example `/unsubuscribe`: exact mathc
+ * @example `/api/*`: prefixed match
+ * @example `*.gif`: extension match
+ * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
+ */
+export function httpProxyBehavior(endpoint: string | Output<string>, pathPattern: string): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+  return all([endpoint]).apply(([endpoint]) => {
+    const url = new URL(endpoint)
+    return {
+      compress: true,
+      pathPattern,
+      targetOriginId: url.hostname + url.pathname,
+      viewerProtocolPolicy: "redirect-to-https",
+      allowedMethods: ["HEAD", "OPTIONS", "GET", "POST", "DELETE", "PUT", "PATCH"],
+      cachedMethods: ["HEAD", "OPTIONS", "GET"],
+      forwardedValues: {
+        headers: ["*"],
+        queryString: true,
+        queryStringCacheKeys: [],
+        cookies: { forward: "none" },
+      },
+      minTtl: 0,
+      defaultTtl: 0,
+      maxTtl: 0
+    }
+  })
+}
