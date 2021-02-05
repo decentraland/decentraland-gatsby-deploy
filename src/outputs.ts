@@ -38,46 +38,46 @@ export function emailDomains(domains: Output<string>[] | string[] | null | undef
 }
 
 export function environmentVariables(environment: (awsx.ecs.KeyValuePair | null | undefined)[] | null | undefined) {
-  if (!environment || environment.length === 0) {
+  if (!environment) {
     return {}
   }
 
-  const environmentVariables = all(environment).apply(values => {
-    return values.reduce(
-      (result, env) => {
-        if (env) {
-          result[env.name] = env.value
-        }
+  environment = environment.filter(Boolean)
+  if (environment.length === 0) {
+    return {}
+  }
 
-        return result
-      },
-      {} as Record<string, string>
+  const environmentVariables = environment
+    .map(env => all([env!.name, env!.value])
+      .apply(([name, value]) => `${name}=${value}`)
     )
-  })
 
   return { environmentVariables }
 }
 
-export function domainRecords(r: Output<aws.route53.Record> | null | undefined) {
-  if (!r) {
+export function domainRecords(record: Output<aws.route53.Record> | null | undefined) {
+  if (!record) {
     return {}
   }
 
-  const domainRecords = r.apply(record => {
+  const domainRecords = record.apply(record => {
     return all([
+      record.name,
       record.type,
       record.aliases,
-    ]).apply(([type, alias]) => {
-      if (!alias) {
-        return []
+    ]).apply(([name, type, aliases]) => {
+      if (!aliases || aliases.length === 0) {
+        return null
       }
 
-      const maxLen = Math.max(...alias.map(a => a.name.length))
-      return alias.map(a => {
-        return `${(a.name + ' '.repeat(maxLen)).slice(0, maxLen)} ${type} ${a.zoneId}`
-      })
+      const alias = aliases[0]
+      return `${name} ${type} ${alias.name}`
     })
   })
+
+  if (!domainRecords) {
+    return {}
+  }
 
   return { domainRecords }
 }
