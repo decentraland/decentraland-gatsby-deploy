@@ -63,8 +63,9 @@ export function addBucketResource(service: string, user: aws.iam.User, paths: st
       corsRules: [
         {
           allowedMethods: ["GET", "HEAD"],
-          exposeHeaders: ["ETag"],
+          allowedHeaders: ["*"],
           allowedOrigins: ["*"],
+          exposeHeaders: ["ETag"],
           maxAgeSeconds: 3600
         }
       ]

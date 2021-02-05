@@ -31,7 +31,7 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
 
 /**
  * Creates a `aws.types.input.cloudfront.DistributionOrderedCacheBehavior` using a `aws.s3.Bucket` and a `pathPatther`,
- * if is listed in the `orderedCacheBehaviors` prop of a `aws.cloudfront.Distribution` routes all the request
+ * if is listed in the `  orderedCacheBehaviors` prop of a `aws.cloudfront.Distribution` routes all the request
  * that match `pathPattern` to the same path in `bucket` and cache the result in cloudfront for 10 minutes (600 seconds)
  *
  * > !IMPORTANT in order to use a bucket as the `orderedCacheBehaviors` prop you need to
@@ -52,6 +52,11 @@ export function staticContentBehavior(bucket: aws.s3.Bucket, pathPattern: string
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
     forwardedValues: {
+      headers: [
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Origin",
+      ],
       cookies: { forward: "none" },
       queryString: false,
     },
@@ -83,6 +88,11 @@ export function immutableContentBehavior(bucket: aws.s3.Bucket, pathPattern: str
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
     forwardedValues: {
+      headers: [
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Origin",
+      ],
       cookies: { forward: "none" },
       queryString: false,
     },
@@ -231,7 +241,11 @@ export function httpProxyBehavior(endpoint: string | Output<string>, pathPattern
       allowedMethods: ["HEAD", "OPTIONS", "GET", "POST", "DELETE", "PUT", "PATCH"],
       cachedMethods: ["HEAD", "OPTIONS", "GET"],
       forwardedValues: {
-        headers: ["*"],
+        headers: [
+          "Access-Control-Request-Headers",
+          "Access-Control-Request-Method",
+          "Origin",
+        ],
         queryString: true,
         queryStringCacheKeys: [],
         cookies: { forward: "none" },
