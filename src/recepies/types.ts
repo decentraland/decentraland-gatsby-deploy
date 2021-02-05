@@ -15,10 +15,9 @@ export type GatsbyOptions = {
   contentSource?: string;
 
   /**
-   * Define a map of redirections, allows you to define file refirections and prefix redirections
-   * (only if contentSource is defined)
+   * Map of redirections, allows you to define file refirections and prefix redirections
    *
-   * @example redirect a specific path into another path or host
+   * @example redirect a specific path into another path or host (only if contentSource is defined)
    *
    * >  !IMOPRTANT: in order to allow this source path must exists inside the bucket,
    * >    if the source path is s directory it must containt an `index.html` file
@@ -47,6 +46,23 @@ export type GatsbyOptions = {
    * ```
    */
   contentRoutingRules?: Record<string, string>
+
+  /**
+   * Map of proxies to other url, allows you to use others domains as part of your content
+   *
+   * @example proxy all request from `/blog/*` to `https://blog.decentraland.io/blog/*`
+   *
+   * ```typescript
+   *    { '/blog/*': 'https://blog.decentraland.io' }
+   * ```
+   *
+   * @example proxy all request from `/docs/*` to `https://docs.decentraland.io/legacy/docs/*`
+   *
+   * ```typescript
+   *    { '/docs/*': 'https://docs.decentraland.io/legacy' }
+   * ```
+   */
+  contentProxy?: Record<string, string>
 
   /**
    * define which tld (top level domain will be used)
