@@ -210,7 +210,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
     corsRules: [
       {
-        allowedMethods: ["GET", "HEAD"],
+        allowedMethods: ["GET", "HEAD", "OPTIONS"],
         exposeHeaders: ["ETag"],
         allowedOrigins: ["*"],
         maxAgeSeconds: 3600
