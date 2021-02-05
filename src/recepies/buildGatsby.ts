@@ -20,6 +20,7 @@ import { getServiceVersion, slug } from "../utils";
 import { GatsbyOptions } from "./types";
 import * as outputs from "../outputs";
 import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
+import { routingRules } from "../aws/s3";
 
 export async function buildGatsby(config: GatsbyOptions) {
   const serviceName = slug(config.name);
@@ -204,7 +205,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     website: {
       indexDocument: "index.html",
       errorDocument: "404.html",
-      // routingRules: []
+      routingRules: routingRules(config.contentRoutingRules)
     },
 
     corsRules: [
