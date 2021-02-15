@@ -5,7 +5,7 @@ export type GatsbyOptions = {
    * Service name
    *
    * > This value will be injected as SERVICE_NAME env.
-   * > SERVICE_VERSION, SERVICE_DOMAIN, SERVICE_TLD, SERVICE_URL will be also injected
+   * > SERVICE_VERSION, SERVICE_TLD, SERVICE_ORG_DOMAIN, SERVICE_DOMAIN, SERVICE_URL will be also injected
    */
   name: string;
 

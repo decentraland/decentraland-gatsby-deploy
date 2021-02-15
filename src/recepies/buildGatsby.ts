@@ -62,9 +62,10 @@ export async function buildGatsby(config: GatsbyOptions) {
       // iniject public service environment
       environment = [
         ...environment,
-        variable('SERVICE_TLD', serviceTLD),
-        variable('SERVICE_DOMAIN', serviceDomain),
-        variable('SERVICE_URL', `https://${serviceDomain}`),
+        variable('SERVICE_TLD', serviceTLD), // .org
+        variable('SERVICE_ORG_DOMAIN', decentralandDomain), // decentraland.org
+        variable('SERVICE_DOMAIN', serviceDomain), // app.decentraland.org
+        variable('SERVICE_URL', `https://${serviceDomain}`), // https://app.decentraland.org
         variable('PORT', `${port}`)
       ]
 
