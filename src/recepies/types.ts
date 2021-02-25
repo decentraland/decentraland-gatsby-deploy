@@ -128,7 +128,15 @@ export type GatsbyOptions = {
    *
    * @default "/api/status"
    */
-  serviceHealthCheck?: string
+  serviceHealthCheckPath?: string
+
+  /**
+   * (only if serviceImage is defined)
+   * Custom metrics path, this endpoint should return a http 200 code
+   *
+   * @default "/metrics"
+   */
+  serviceMetricsPath?: string
 
   /**
    * (only if serviceImage is defined)

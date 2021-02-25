@@ -8,8 +8,11 @@ import { acceptAlbSecurityGroupId } from "dcl-ops-lib/acceptAlb";
 import { acceptBastionSecurityGroupId } from "dcl-ops-lib/acceptBastion";
 import { acceptDbSecurityGroupId } from "dcl-ops-lib/acceptDb";
 import { accessTheInternetSecurityGroupId } from "dcl-ops-lib/accessTheInternet";
+import { getInternalServiceDiscoveryNamespaceId } from "dcl-ops-lib/supra";
 import { getAlb } from "dcl-ops-lib/alb";
+import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
+import { getStackId } from "dcl-ops-lib/stack"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
 import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior } from "../aws/cloudfront";
@@ -21,6 +24,7 @@ import { GatsbyOptions } from "./types";
 import * as outputs from "../outputs";
 import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
 import { routingRules } from "../aws/s3";
+import { createMetricsSecurityGroupId } from "../aws/ec2";
 
 export async function buildGatsby(config: GatsbyOptions) {
   const serviceName = slug(config.name);
@@ -37,6 +41,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   let serviceOrigins: Output<aws.types.input.cloudfront.DistributionOrigin>[] = []
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
   let serviceSecurityGroups: Output<string>[] = []
+  let serviceLabel: Record<string, string> = {}
 
   if (config.serviceImage) {
     const portMappings: awsx.ecs.ContainerPortMappingProvider[] = []
@@ -72,17 +77,19 @@ export async function buildGatsby(config: GatsbyOptions) {
       // grant access to load banlancer
       serviceSecurityGroups = [
         ...serviceSecurityGroups,
-        await acceptAlbSecurityGroupId()
+        await acceptAlbSecurityGroupId(),
+        await createMetricsSecurityGroupId(serviceName, port)
       ]
 
       // create target group
+      const vpc = await getVpc()
       const { alb, listener } = await getAlb();
       const targetGroup = alb.createTargetGroup(("tg-" + serviceName).slice(-32), {
+        vpc,
         port,
         protocol: "HTTP",
-        vpc: awsx.ec2.Vpc.getDefault(),
         healthCheck: {
-          path: config.serviceHealthCheck || "/api/status",
+          path: config.serviceHealthCheckPath || "/api/status",
           matcher: "200",
           interval: 10,
           unhealthyThreshold: 5,
@@ -111,6 +118,10 @@ export async function buildGatsby(config: GatsbyOptions) {
         ...serviceOrderedCacheBehaviors,
         ...servicePaths.map(servicePath => serverBehavior(alb, servicePath))
       ]
+
+      serviceLabel.ECS_PROMETHEUS_JOB_NAME = serviceName
+      serviceLabel.ECS_PROMETHEUS_EXPORTER_PORT = String(port)
+      serviceLabel.ECS_PROMETHEUS_METRICS_PATH = config.serviceMetricsPath || '/metrics'
     }
 
     // attach AWS resources
@@ -158,22 +169,47 @@ export async function buildGatsby(config: GatsbyOptions) {
       ]
     }
 
+    // create service discovery
+    const serviceDiscovery = new aws.servicediscovery.Service(serviceName, {
+      name: serviceName,
+      description: "service discovery for " + serviceName,
+      dnsConfig: {
+        dnsRecords: [
+          { type: "A", ttl: 10 },
+          { type: "SRV", ttl: 10 },
+        ],
+        namespaceId: getInternalServiceDiscoveryNamespaceId(),
+      },
+    })
+
     // create Fargate service
     new awsx.ecs.FargateService(
-      `${serviceName}-${serviceVersion}`,
+      serviceName,
       {
         cluster,
         subnets: await getPrivateSubnetIds(),
         securityGroups: serviceSecurityGroups,
         desiredCount: config.serviceDesiredCount || 1,
+        enableEcsManagedTags: true,
+        tags: {
+          ServiceName: serviceName,
+          StackId: getStackId()
+        },
+        serviceRegistries: {
+          port,
+          registryArn: serviceDiscovery.arn
+        },
         taskDefinitionArgs: {
+          tags: { ServiceName: serviceName },
           containers: {
-            service: {
+            [serviceName]: {
               image: config.serviceImage,
               memoryReservation: config.serviceMemory || 256,
               essential: true,
               environment,
+              // TODO: secrets
               portMappings,
+              dockerLabels: serviceLabel,
               logConfiguration: {
                 logDriver: "awslogs",
                 options: {
