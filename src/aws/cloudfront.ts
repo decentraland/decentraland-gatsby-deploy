@@ -1,6 +1,7 @@
 import { all, Output } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
+import { HttpProxyOrigin } from "./types";
 
 /*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
@@ -43,7 +44,7 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function staticContentBehavior(bucket: aws.s3.Bucket, pathPattern: string): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
     compress: true,
     targetOriginId,
@@ -79,7 +80,7 @@ export function staticContentBehavior(bucket: aws.s3.Bucket, pathPattern: string
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function immutableContentBehavior(bucket: aws.s3.Bucket, pathPattern: string): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function immutableContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
     compress: true,
     targetOriginId,
@@ -111,7 +112,7 @@ export function immutableContentBehavior(bucket: aws.s3.Bucket, pathPattern: str
  * > list it in the `origins` prop, please check the `bucketOrigin` function
  */
 export function defaultStaticContentBehavior(bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return staticContentBehavior(bucket, '/*').apply(({ pathPattern, ...behavior }) => behavior)
+  return staticContentBehavior('/*', bucket).apply(({ pathPattern, ...behavior }) => behavior)
 }
 
 /******************************************************************
@@ -152,7 +153,7 @@ export function albOrigin(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalanc
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function serverBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer, pathPattern: string): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function serverBehavior(pathPattern: string, alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([alb.loadBalancer.arn]).apply(([targetOriginId]) => ({
     compress: true,
     pathPattern,
@@ -181,7 +182,7 @@ export function serverBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadB
  * > list it in the `origins` prop, please check the `albOrigin` function
  */
 export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return serverBehavior(alb, '/*').apply(({ pathPattern, ...behavior }) => behavior)
+  return serverBehavior('/*', alb).apply(({ pathPattern, ...behavior }) => behavior)
 }
 
 /******************************************************************
@@ -195,8 +196,9 @@ export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.Applicati
  * `https://docs.decentraland.co/legacy`each time  a user request for `https://example.decentraland.org/docs/eth/index.html`
  *  cloudfront will request `https://docs.decentraland.co/legacy/docs/eth/index.html`
  */
-export function httpOrigin(enpoint: string | Output<string>): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([ enpoint ])
+export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.cloudfront.DistributionOrigin> {
+  const endpoint = typeof target === 'string' ? target : target.origin;
+  return all([ endpoint ])
   .apply(([endpoint]) => {
       const url = new URL(endpoint)
       return {
@@ -230,7 +232,11 @@ export function httpOrigin(enpoint: string | Output<string>): Output<aws.types.i
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function httpProxyBehavior(endpoint: string | Output<string>, pathPattern: string): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+  const endpoint = typeof target === 'string' ? target : target.origin;
+  const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
+  const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
+  const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
   return all([endpoint]).apply(([endpoint]) => {
     const url = new URL(endpoint)
     return {
@@ -250,9 +256,9 @@ export function httpProxyBehavior(endpoint: string | Output<string>, pathPattern
         queryStringCacheKeys: [],
         cookies: { forward: "none" },
       },
-      minTtl: 0,
-      defaultTtl: 0,
-      maxTtl: 0
+      minTtl,
+      defaultTtl,
+      maxTtl
     }
   })
 }

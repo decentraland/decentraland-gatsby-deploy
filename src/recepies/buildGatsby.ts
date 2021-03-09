@@ -15,7 +15,7 @@ import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 import { getStackId } from "dcl-ops-lib/stack"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -116,7 +116,7 @@ export async function buildGatsby(config: GatsbyOptions) {
       const servicePaths = config.servicePaths || [ '/api/*' ]
       serviceOrderedCacheBehaviors = [
         ...serviceOrderedCacheBehaviors,
-        ...servicePaths.map(servicePath => serverBehavior(alb, servicePath))
+        ...servicePaths.map(servicePath => serverBehavior(servicePath, alb))
       ]
 
       serviceLabel.ECS_PROMETHEUS_JOB_NAME = serviceName
@@ -143,7 +143,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
           serviceOrderedCacheBehaviors = [
             ...serviceOrderedCacheBehaviors,
-            ...useBucket.map(path => immutableContentBehavior(bucket, path))
+            ...useBucket.map(path => immutableContentBehavior(path, bucket))
           ]
         }
       }
@@ -230,6 +230,25 @@ export async function buildGatsby(config: GatsbyOptions) {
         },
       }
     );
+  }
+
+  const  proxyOrigins = new Set<string>()
+  const contentProxy = config.contentProxy || {}
+  for (const pathPattern of Object.keys(contentProxy)) {
+    const originConfiguration = contentProxy[pathPattern]
+    const origin = typeof originConfiguration === 'string' ? originConfiguration : originConfiguration.origin
+    if (!proxyOrigins.has(origin)) {
+      proxyOrigins.add(origin)
+      serviceOrigins = [
+        ...serviceOrigins,
+        httpOrigin(originConfiguration)
+      ]
+    }
+
+    serviceOrderedCacheBehaviors = [
+      ...serviceOrderedCacheBehaviors,
+      httpProxyBehavior(pathPattern, originConfiguration)
+    ]
   }
 
   const contentRoutingRules = routingRules(config.contentRoutingRules)

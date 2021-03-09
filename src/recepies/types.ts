@@ -1,4 +1,5 @@
 import type * as awsx from "@pulumi/awsx";
+import { HttpProxyOrigin } from "../aws/types";
 
 export type GatsbyOptions = {
   /**
@@ -60,9 +61,21 @@ export type GatsbyOptions = {
    *
    * ```typescript
    *    { '/docs/*': 'https://docs.decentraland.io/legacy' }
+   *
+   * @example add a custom ttl
+   *
+   * ```typescript
+   *    {
+   *      '/c/lambdas/*': {
+   *        endpoint: 'https://peer-ec1.decentraland.org/c',
+   *        minTtl: 600,
+   *        defaultTtl: 3600,
+   *        maxTtl: 3600,
+   *      }
+   *    }
    * ```
    */
-  contentProxy?: Record<string, string>
+  contentProxy?: Record<string, HttpProxyOrigin>
 
   /**
    * define which tld (top level domain will be used)
