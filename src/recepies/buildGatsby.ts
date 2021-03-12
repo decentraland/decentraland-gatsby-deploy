@@ -25,6 +25,7 @@ import * as outputs from "../outputs";
 import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
 import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
+import { createDockerImage } from "../aws/ecr";
 
 export async function buildGatsby(config: GatsbyOptions) {
   const serviceName = slug(config.name);
@@ -43,11 +44,22 @@ export async function buildGatsby(config: GatsbyOptions) {
   let serviceSecurityGroups: Output<string>[] = []
   let serviceLabel: Record<string, string> = {}
 
-  if (config.serviceImage) {
+  if (config.serviceImage && config.serviceSource) {
+    throw new Error(`Config configuration: you can use "serviceImage" or "serviceSource" but not both.`)
+  }
+
+  if (config.serviceImage || config.serviceSource) {
+    let serviceImage: string | Output<string>
+    if (config.serviceImage) {
+      serviceImage = config.serviceImage as string
+    } else {
+      serviceImage = createDockerImage(serviceName, config.serviceSource as string)
+    }
+
     const portMappings: awsx.ecs.ContainerPortMappingProvider[] = []
     environment = [
       ...environment,
-      variable('IMAGE', config.serviceImage),
+      variable('IMAGE', serviceImage),
       variable('SERVICE_NAME', serviceName),
       variable('SERVICE_VERSION', serviceVersion),
       ...currentStackConfigurations(),
@@ -203,7 +215,7 @@ export async function buildGatsby(config: GatsbyOptions) {
           tags: { ServiceName: serviceName },
           containers: {
             [serviceName]: {
-              image: config.serviceImage,
+              image: serviceImage,
               memoryReservation: config.serviceMemory || 256,
               essential: true,
               environment,

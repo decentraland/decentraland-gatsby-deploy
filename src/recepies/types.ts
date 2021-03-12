@@ -11,6 +11,7 @@ export type GatsbyOptions = {
   name: string;
 
   /**
+   * TODO: implemente
    * Path of the content will by upload to the content bucket
    */
   contentSource?: string;
@@ -94,22 +95,30 @@ export type GatsbyOptions = {
   additionalDomains?: string[]
 
   /**
-   * Docker image used to create a fargate service
+   * Docker image used to create a fargate service,
    *
    * > This value will be injected as IMAGE env
    */
   serviceImage?: string | null | undefined | false
 
   /**
-   * (only if serviceImage is defined)
-   * The number of instantiations of the service to place and keep running (only if serviceImage is defined)
+   * Path to docker source, it will builds an image and stores it inside a amazon,
+   * relative to `process.cwd()`
+   *
+   * > The result of the build will be injected as IMAGE env
+   */
+  serviceSource?: string | null | undefined | false
+
+  /**
+   * (only if `serviceImage` or `serviceSource` is defined)
+   * The number of instantiations of the service to place and keep running
    *
    * @default 1
    */
   serviceDesiredCount?: number
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Memory reserved to the fargare service (in MB)
    *
    * @default 256
@@ -117,8 +126,8 @@ export type GatsbyOptions = {
   serviceMemory?: number
 
   /**
-   * (only if serviceImage is defined)
-   * Port exposed from fargate service (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
+   * Port exposed from fargate service
    *
    * > This value will be injected as PORT env
    *
@@ -127,7 +136,7 @@ export type GatsbyOptions = {
   servicePort?: number
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Paths mapped from cloudfront into the fargate service
    * if `false` service will be private
    *
@@ -136,7 +145,7 @@ export type GatsbyOptions = {
   servicePaths?: string[] | false
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Custom health check path, this endpoint should return a http 200 code
    *
    * @default "/api/status"
@@ -144,7 +153,7 @@ export type GatsbyOptions = {
   serviceHealthCheckPath?: string
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Custom metrics path, this endpoint should return a http 200 code
    *
    * @default "/metrics"
@@ -152,13 +161,13 @@ export type GatsbyOptions = {
   serviceMetricsPath?: string
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Adsitional environment variables exposed into the service
    */
   serviceEnvironment?: awsx.ecs.KeyValuePair[]
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Create a bucket and inject a AWS_ACCESS_{KEY/SECRET} env with read/create access to that bucket
    *  - if `true` the bucket wont be accesible from the web
    *  - if `string[]` paths will be mapped on cloudfront
@@ -173,7 +182,7 @@ export type GatsbyOptions = {
   useBucket?: boolean | string[]
 
   /**
-   * (only if serviceImage is defined)
+   * (only if `serviceImage` or `serviceSource` is defined)
    * Inject AWS_ACCESS_{KEY/SECRET} env with access to send emails
    *  - if `true` will grant access to send emails using the current domain
    *  - if `string[]` will gran access to end emails using any domain in that list
