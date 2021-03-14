@@ -55,7 +55,7 @@ export function environmentVariables(environment: (awsx.ecs.KeyValuePair | null 
   return { environmentVariables }
 }
 
-export function domainRecords(record: Output<aws.route53.Record> | null | undefined) {
+export function domainRecord(record: Output<aws.route53.Record> | null | undefined) {
   if (!record) {
     return {}
   }
@@ -80,4 +80,26 @@ export function domainRecords(record: Output<aws.route53.Record> | null | undefi
   }
 
   return { domainRecords }
+}
+
+export function domainRecords(records: Output<aws.route53.Record>[]) {
+  return all(records.map(domainRecord))
+    .apply((...result) => {
+      const domainRecordList: ReturnType<typeof domainRecord>[] = result as any
+      const list = domainRecordList.filter(r => Boolean(r && r.domainRecords))
+
+      if (list.length === 0) {
+        return {}
+      }
+
+      let domainRecords: Output<string>[] = []
+      for (const record of list) {
+        domainRecords = [
+          ...domainRecords,
+          record.domainRecords as Output<string>
+        ]
+      }
+
+      return { domainRecords }
+    })
 }

@@ -378,7 +378,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     },
   }));
 
-  const record = createRecordForCloudfront(serviceName, decentralandDomain, cdn)
+  const records = domains.map(domain => createRecordForCloudfront(domain, cdn))
 
   // Export properties from this stack. This prints them at the end of `pulumi up` and
   // makes them easier to access from the pulumi.com.
@@ -392,7 +392,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     ...outputs.securityGroups(serviceSecurityGroups),
     ...outputs.environmentVariables(environment),
     ...outputs.emailDomains(emailDomains),
-    ...outputs.domainRecords(record)
+    ...outputs.domainRecords(records)
   }
 
   return output
