@@ -243,7 +243,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     );
   }
 
-  const  proxyOrigins = new Set<string>()
+  const proxyOrigins = new Set<string>()
   const contentProxy = config.contentProxy || {}
   for (const pathPattern of Object.keys(contentProxy)) {
     const originConfiguration = contentProxy[pathPattern]

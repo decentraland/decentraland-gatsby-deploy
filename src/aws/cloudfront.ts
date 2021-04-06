@@ -201,10 +201,11 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
   return all([ endpoint ])
   .apply(([endpoint]) => {
       const url = new URL(endpoint)
-      return {
-        originId: url.hostname + url.pathname,
-        domainName: url.hostname,
-        originPath: url.pathname,
+      const hostname = url.hostname
+      const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
+      const distribution: aws.types.input.cloudfront.DistributionOrigin = {
+        originId: hostname + pathname,
+        domainName: hostname,
         customOriginConfig: {
           originProtocolPolicy: url.protocol === 'https:' ? 'https-only' : 'http-only',
           httpPort: 80,
@@ -212,6 +213,12 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
           originSslProtocols: ["TLSv1.2"],
         }
       }
+
+      if (pathname) {
+        distribution.originPath = url.pathname
+      }
+
+      return distribution
   })
 }
 
@@ -239,10 +246,12 @@ export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin):
   const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
   return all([endpoint]).apply(([endpoint]) => {
     const url = new URL(endpoint)
+    const hostname = url.hostname
+    const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
     return {
       compress: true,
       pathPattern,
-      targetOriginId: url.hostname + url.pathname,
+      targetOriginId: hostname + pathname,
       viewerProtocolPolicy: "redirect-to-https",
       allowedMethods: ["HEAD", "OPTIONS", "GET", "POST", "DELETE", "PUT", "PATCH"],
       cachedMethods: ["HEAD", "OPTIONS", "GET"],
