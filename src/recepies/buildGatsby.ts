@@ -12,7 +12,6 @@ import { getInternalServiceDiscoveryNamespaceId } from "dcl-ops-lib/supra";
 import { getAlb } from "dcl-ops-lib/alb";
 import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
-import { getStackId } from "dcl-ops-lib/stack"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
 import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior } from "../aws/cloudfront";
@@ -205,7 +204,7 @@ export async function buildGatsby(config: GatsbyOptions) {
         enableEcsManagedTags: true,
         tags: {
           ServiceName: serviceName,
-          StackId: getStackId()
+          StackId: process.env.STACK_ID || 'default'
         },
         serviceRegistries: {
           port,
@@ -392,7 +391,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     ...outputs.securityGroups(serviceSecurityGroups),
     ...outputs.environmentVariables(environment),
     ...outputs.emailDomains(emailDomains),
-    ...outputs.domainRecords(records)
+    ...outputs.domainRecord(records[0])
   }
 
   return output

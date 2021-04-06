@@ -57,7 +57,7 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
-    "dcl-ops-lib": "4.21.4",
+    "dcl-ops-lib": "^5.0.1",
     "glob": "^7.1.6"
   }
 }
