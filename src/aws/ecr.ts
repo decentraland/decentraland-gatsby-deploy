@@ -7,7 +7,7 @@ export function createDockerImage(serviceName: string, serviceSourcePath: string
   const context = resolve(process.cwd(), serviceSourcePath)
   const ecr = new aws.ecr.Repository(serviceName)
   const registry = getImageRegistryAndCredentials(ecr)
-  new docker.Image(`${serviceName}-image`, {
+  const image = new docker.Image(`${serviceName}-image`, {
     imageName: ecr.repositoryUrl.apply(name => {
       if (process.env.CI_COMMIT_TAG) {
         return `${name}:${process.env.CI_COMMIT_TAG}`
@@ -25,5 +25,5 @@ export function createDockerImage(serviceName: string, serviceSourcePath: string
     }
   });
 
-  return ecr.repositoryUrl
+  return image.imageName
 }
