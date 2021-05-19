@@ -8,7 +8,15 @@ export function createDockerImage(serviceName: string, serviceSourcePath: string
   const ecr = new aws.ecr.Repository(serviceName)
   const registry = getImageRegistryAndCredentials(ecr)
   new docker.Image(`${serviceName}-image`, {
-    imageName: ecr.repositoryUrl,
+    imageName: ecr.repositoryUrl.apply(name => {
+      if (process.env.CI_COMMIT_TAG) {
+        return `${name}:${process.env.CI_COMMIT_TAG}`
+      } else if (process.env.CI_COMMIT_SHA) {
+        return `${name}:${process.env.CI_COMMIT_SHA}`
+      } else {
+        return name
+      }
+    }),
     registry: registry,
     build: {
         context,
