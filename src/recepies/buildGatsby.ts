@@ -1,4 +1,4 @@
-import { Output, all } from "@pulumi/pulumi";
+import { Output, all, StackReference } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
@@ -25,6 +25,8 @@ import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53
 import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
+
+const prometheus = new StackReference(`prometheus-${env}`)
 
 export async function buildGatsby(config: GatsbyOptions) {
   const serviceName = slug(config.name);
@@ -61,6 +63,7 @@ export async function buildGatsby(config: GatsbyOptions) {
       variable('IMAGE', serviceImage),
       variable('SERVICE_NAME', serviceName),
       variable('SERVICE_VERSION', serviceVersion),
+      variable('PROMETHEUS_BEARER_TOKEN', prometheus.getOutput('serviceMetricsBearerToken') ),
       ...currentStackConfigurations(),
       ...(config.serviceEnvironment || []),
     ]
