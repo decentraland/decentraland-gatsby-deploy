@@ -18,7 +18,7 @@ import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, 
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
-import { getServiceVersion, slug } from "../utils";
+import { getScopedServiceName, getServiceVersion, getStackId, slug } from "../utils";
 import { GatsbyOptions } from "./types";
 import * as outputs from "../outputs";
 import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
@@ -30,6 +30,7 @@ const prometheus = new StackReference(`prometheus-${env}`)
 
 export async function buildGatsby(config: GatsbyOptions) {
   const serviceName = slug(config.name);
+  const serviceNameScoped = getScopedServiceName(config.name);
   const serviceVersion = getServiceVersion()
   const decentralandDomain = config.usePublicTLD ? publicDomain : envDomain
   const serviceTLD = config.usePublicTLD ? publicTLD : envTLD
@@ -61,6 +62,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     environment = [
       ...environment,
       variable('IMAGE', serviceImage),
+      variable('STACK_ID', getStackId()),
       variable('SERVICE_NAME', serviceName),
       variable('SERVICE_VERSION', serviceVersion),
       variable('PROMETHEUS_BEARER_TOKEN', prometheus.getOutput('serviceMetricsBearerToken') ),
@@ -196,25 +198,42 @@ export async function buildGatsby(config: GatsbyOptions) {
       },
     })
 
+
+    const tags: Record<string, string> = {
+      ServiceName: serviceName,
+      StackId: getStackId()
+    }
+
+    if (config.team) {
+      tags.Team = config.team
+    }
+
+    let logGroup: aws.cloudwatch.LogGroup | null = null
+    if (config.team) {
+      logGroup = new aws.cloudwatch.LogGroup(serviceNameScoped, {
+        name: serviceNameScoped,
+        retentionInDays: 60,
+        tags,
+      })
+    }
+
     // create Fargate service
     new awsx.ecs.FargateService(
-      serviceName,
+      serviceNameScoped,
       {
         cluster,
         subnets: await getPrivateSubnetIds(),
         securityGroups: serviceSecurityGroups,
         desiredCount: config.serviceDesiredCount || 1,
         enableEcsManagedTags: true,
-        tags: {
-          ServiceName: serviceName,
-          StackId: process.env.STACK_ID || 'default'
-        },
+        tags,
         serviceRegistries: {
           port,
           registryArn: serviceDiscovery.arn
         },
         taskDefinitionArgs: {
-          tags: { ServiceName: serviceName },
+          tags,
+          logGroup,
           containers: {
             [serviceName]: {
               image: serviceImage,

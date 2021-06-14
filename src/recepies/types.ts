@@ -11,6 +11,11 @@ export type GatsbyOptions = {
   name: string;
 
   /**
+   *
+   */
+  team?: "dapps" | "platform" | "data" | "marketing" | "infra",
+
+  /**
    * TODO: implemente
    * Path of the content will by upload to the content bucket
    */

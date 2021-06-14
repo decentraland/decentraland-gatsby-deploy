@@ -12,6 +12,23 @@ export function getServiceVersion() {
     process.env['CI_COMMIT_BRANCH'] || 'current'
 }
 
+export function getStackId () {
+  return process.env.STACK_ID || 'default'
+}
+
+export function getServiceName (name: string) {
+  return slug(name)
+}
+
+export function getScopedServiceName (name: string) {
+  const stackId = process.env.STACK_ID
+  if (stackId) {
+    return `${slug(name)}-${slug(stackId)}`
+  }
+
+  return slug(name)
+}
+
 export function debug<T extends (object | string | number | null | undefined)>(value: T): T {
   try {
     console.log('debug:', JSON.stringify(value, null, 2));

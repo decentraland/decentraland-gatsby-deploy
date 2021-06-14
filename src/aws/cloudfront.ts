@@ -2,6 +2,7 @@ import { all, Output } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { HttpProxyOrigin } from "./types";
+import { getStaticResponseViewer } from "./lambda";
 
 /*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
@@ -45,13 +46,19 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
 export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([bucket.arn]).apply(([targetOriginId]) => ({
+  return all([bucket.arn, getStaticResponseViewer()]).apply(([targetOriginId, viewerResponse]) => ({
     compress: true,
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    lambdaFunctionAssociations: [
+      {
+        eventType: 'viewer-response',
+        lambdaArn: viewerResponse.arn
+      }
+    ],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -81,13 +88,19 @@ export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
 export function immutableContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([bucket.arn]).apply(([targetOriginId]) => ({
+  return all([bucket.arn, getStaticResponseViewer()]).apply(([targetOriginId, viewerResponse]) => ({
     compress: true,
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    lambdaFunctionAssociations: [
+      {
+        eventType: 'viewer-response',
+        lambdaArn: viewerResponse.arn
+      }
+    ],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -244,7 +257,8 @@ export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin):
   const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
   const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
   const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
-  return all([endpoint]).apply(([endpoint]) => {
+
+  return all([endpoint, getStaticResponseViewer()]).apply(([endpoint, viewerResponse]) => {
     const url = new URL(endpoint)
     const hostname = url.hostname
     const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
@@ -255,6 +269,12 @@ export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin):
       viewerProtocolPolicy: "redirect-to-https",
       allowedMethods: ["HEAD", "OPTIONS", "GET", "POST", "DELETE", "PUT", "PATCH"],
       cachedMethods: ["HEAD", "OPTIONS", "GET"],
+      lambdaFunctionAssociations: [
+        {
+          eventType: 'viewer-response',
+          lambdaArn: viewerResponse.arn
+        }
+      ],
       forwardedValues: {
         headers: [
           "Access-Control-Request-Headers",
