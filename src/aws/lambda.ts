@@ -27,15 +27,11 @@ export const getStaticResponseViewer = withCache(function createStaticResponseVi
     role: role.arn,
     handler: 'exports.handler',
     runtime: 'nodejs12.x',
+    publish: true,
     code: new pulumi.asset.AssetArchive({
       ".": new pulumi.asset.FileArchive(resolve(__dirname, '../../lambda/response-viewer')),
    }),
   })
 
-  const qualifier = new aws.lambda.Alias(`static-response-viewer-qualifier`, {
-    functionName: lambda.arn,
-    functionVersion: '$LATEST'
-  })
-
-  return [lambda, qualifier]
+  return lambda
 })
