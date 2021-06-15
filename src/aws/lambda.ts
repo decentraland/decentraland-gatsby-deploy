@@ -1,15 +1,23 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
-import withCache from "dcl-ops-lib/withCache";
 import { resolve } from "path";
 
-export const getStaticResponseViewer = withCache(function createStaticResponseViewer() {
-  const role = new aws.iam.Role(`static-response-viewer-role`, {
+export type CreateLambdaOptions = {
+  logGroup: aws.cloudwatch.LogGroup | null | undefined,
+  tags: pulumi.Input<aws.Tags> | undefined
+}
+
+export function createSecurityHeadersLambda(name: string, options: Partial<CreateLambdaOptions> = {}) {
+  const role = new aws.iam.Role(`${name}-lambda-role`, {
+    path: '/',
+    managedPolicyArns: [
+      aws.iam.ManagedPolicies.AWSLambdaBasicExecutionRole
+    ],
     assumeRolePolicy: {
       Version: '2012-10-17',
       Statement: [
         {
-          Sid: "",
+          Sid: "AllowLambdaServiceToAssumeRole",
           Effect: "Allow",
           Action: "sts:AssumeRole",
           Principal: {
@@ -23,15 +31,45 @@ export const getStaticResponseViewer = withCache(function createStaticResponseVi
     }
   })
 
-  const lambda = new aws.lambda.Function(`static-response-viewer`, {
-    role: role.arn,
-    handler: 'exports.handler',
-    runtime: 'nodejs12.x',
-    publish: true,
-    code: new pulumi.asset.AssetArchive({
-      ".": new pulumi.asset.FileArchive(resolve(__dirname, '../../lambda/response-viewer')),
-   }),
-  })
+  if (options.logGroup) {
+    const lambdaLogginPolicy = new aws.iam.Policy(`${name}-lambda-loggin-policy`, {
+      path: '/lambda@edge/',
+      description: 'IAM policy for logging from a lambda@edge',
+      policy: {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Action": [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+            ],
+            "Resource": options.logGroup.arn, // "arn:aws:logs:*:*:*",
+            "Effect": "Allow"
+          }
+        ]
+      }
+    })
+
+    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, {
+      role: role.arn,
+      policyArn: lambdaLogginPolicy.arn
+    })
+  }
+
+  const lambda = new aws.lambda.Function(`${name}-lambda`,
+    {
+      role: role.arn,
+      handler: 'exports.handler',
+      runtime: 'nodejs12.x',
+      name: 'security-headers',
+      description: 'Adds security headers to the response',
+      publish: true,
+      tags: options.tags || {},
+      code: new pulumi.asset.AssetArchive({
+          ".": new pulumi.asset.FileArchive(resolve(__dirname, '../../lambda/response-viewer')),
+      }),
+    })
 
   return lambda
-})
+}

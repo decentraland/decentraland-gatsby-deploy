@@ -2,7 +2,6 @@ import { all, Output } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { HttpProxyOrigin } from "./types";
-import { getStaticResponseViewer } from "./lambda";
 
 /*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
@@ -45,21 +44,19 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  const lambda = getStaticResponseViewer()
-  return all([bucket.arn, lambda]).apply(([targetOriginId, viewerResponse]) => ({
+export function staticContentBehavior(
+  pathPattern: string,
+  bucket: aws.s3.Bucket,
+  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+  return all([bucket.arn ]).apply(([targetOriginId ]) => ({
+    ...options,
     compress: true,
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
-    lambdaFunctionAssociations: [
-      {
-        eventType: 'viewer-response',
-        lambdaArn: viewerResponse.qualifiedArn
-      }
-    ],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -88,21 +85,19 @@ export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function immutableContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  const lambda = getStaticResponseViewer()
-  return all([bucket.arn, lambda]).apply(([targetOriginId, viewerResponse]) => ({
+export function immutableContentBehavior(
+  pathPattern: string,
+  bucket: aws.s3.Bucket,
+  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+  return all([bucket.arn]).apply(([targetOriginId]) => ({
+    ...options,
     compress: true,
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
     allowedMethods: ["GET", "HEAD", "OPTIONS"],
     cachedMethods: ["GET", "HEAD", "OPTIONS"],
-    lambdaFunctionAssociations: [
-      {
-        eventType: 'viewer-response',
-        lambdaArn: viewerResponse.qualifiedArn
-      }
-    ],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -126,8 +121,11 @@ export function immutableContentBehavior(pathPattern: string, bucket: aws.s3.Buc
  * > !IMPORTANT in order to use a bucket as the `defaultCacheBehavior` prop you need to
  * > list it in the `origins` prop, please check the `bucketOrigin` function
  */
-export function defaultStaticContentBehavior(bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return staticContentBehavior('/*', bucket).apply(({ pathPattern, ...behavior }) => behavior)
+export function defaultStaticContentBehavior(
+  bucket: aws.s3.Bucket,
+  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
+  return staticContentBehavior('/*', bucket, options).apply(({ pathPattern, ...behavior }) => behavior)
 }
 
 /******************************************************************
@@ -168,8 +166,13 @@ export function albOrigin(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalanc
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function serverBehavior(pathPattern: string, alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function serverBehavior(
+  pathPattern: string,
+  alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer,
+  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([alb.loadBalancer.arn]).apply(([targetOriginId]) => ({
+    ...options,
     compress: true,
     pathPattern,
     targetOriginId,
@@ -254,30 +257,28 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
  * @example `*.gif`: extension match
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
-export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
+export function httpProxyBehavior(
+  pathPattern: string,
+  target: HttpProxyOrigin,
+  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   const endpoint = typeof target === 'string' ? target : target.origin;
   const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
   const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
   const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
-  const lambda = getStaticResponseViewer()
 
-  return all([endpoint, lambda]).apply(([endpoint, viewerResponse]) => {
+  return all([endpoint]).apply(([endpoint]) => {
     const url = new URL(endpoint)
     const hostname = url.hostname
     const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
     return {
+      ...options,
       compress: true,
       pathPattern,
       targetOriginId: hostname + pathname,
       viewerProtocolPolicy: "redirect-to-https",
       allowedMethods: ["HEAD", "OPTIONS", "GET", "POST", "DELETE", "PUT", "PATCH"],
       cachedMethods: ["HEAD", "OPTIONS", "GET"],
-      lambdaFunctionAssociations: [
-        {
-          eventType: 'viewer-response',
-          lambdaArn: viewerResponse.qualifiedArn
-        }
-      ],
       forwardedValues: {
         headers: [
           "Access-Control-Request-Headers",

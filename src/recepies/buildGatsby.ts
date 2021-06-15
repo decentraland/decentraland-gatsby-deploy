@@ -25,6 +25,7 @@ import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53
 import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
+import { createSecurityHeadersLambda } from "../aws/lambda";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
@@ -45,6 +46,30 @@ export async function buildGatsby(config: GatsbyOptions) {
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
   let serviceSecurityGroups: Output<string>[] = []
   let serviceLabel: Record<string, string> = {}
+
+  const tags: Record<string, string> = {
+    ServiceName: serviceName,
+    StackId: getStackId(),
+    Team: config.team || 'default'
+  }
+
+  const logGroup = new aws.cloudwatch.LogGroup(serviceNameScoped, {
+    name: serviceNameScoped,
+    retentionInDays: 60,
+    tags,
+  })
+
+  const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
+  const staticLambdaOptions = {
+    lambdaFunctionAssociations: [
+      {
+        includeBody: false,
+        eventType: 'viewer-response',
+        lambdaArn: securityHeaders.version
+      }
+    ]
+  }
+
 
   if (config.serviceImage && config.serviceSource) {
     throw new Error(`Config configuration: you can use "serviceImage" or "serviceSource" but not both.`)
@@ -159,7 +184,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
           serviceOrderedCacheBehaviors = [
             ...serviceOrderedCacheBehaviors,
-            ...useBucket.map(path => immutableContentBehavior(path, bucket))
+            ...useBucket.map(path => immutableContentBehavior(path, bucket, staticLambdaOptions))
           ]
         }
       }
@@ -197,25 +222,6 @@ export async function buildGatsby(config: GatsbyOptions) {
         namespaceId: getInternalServiceDiscoveryNamespaceId(),
       },
     })
-
-
-    const tags: Record<string, string> = {
-      ServiceName: serviceName,
-      StackId: getStackId()
-    }
-
-    if (config.team) {
-      tags.Team = config.team
-    }
-
-    let logGroup: aws.cloudwatch.LogGroup | null = null
-    if (config.team) {
-      logGroup = new aws.cloudwatch.LogGroup(serviceNameScoped, {
-        name: serviceNameScoped,
-        retentionInDays: 60,
-        tags,
-      })
-    }
 
     // create Fargate service
     new awsx.ecs.FargateService(
@@ -280,7 +286,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
     serviceOrderedCacheBehaviors = [
       ...serviceOrderedCacheBehaviors,
-      httpProxyBehavior(pathPattern, originConfiguration)
+      httpProxyBehavior(pathPattern, originConfiguration, staticLambdaOptions)
     ]
   }
 
@@ -335,7 +341,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   // logsBucket is an S3 bucket that will contain the CDN's request logs.
   const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
   const cdn = all([
-    defaultStaticContentBehavior(contentBucket),
+    defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
     all(serviceOrigins),
     all(serviceOrderedCacheBehaviors),
     logs.bucketDomainName
