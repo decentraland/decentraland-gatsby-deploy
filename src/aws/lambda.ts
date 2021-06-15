@@ -50,10 +50,7 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
       }
     })
 
-    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, {
-      role: role.arn,
-      policyArn: lambdaLogginPolicy.arn
-    })
+    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, { role, policyArn: lambdaLogginPolicy.arn })
   }
 
   const lambda = new aws.lambda.Function(`${name}-lambda`,
