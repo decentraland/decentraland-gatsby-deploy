@@ -65,7 +65,7 @@ export async function buildGatsby(config: GatsbyOptions) {
       {
         includeBody: false,
         eventType: 'viewer-response',
-        lambdaArn: securityHeaders.version
+        lambdaArn: securityHeaders.qualifiedArn
       }
     ]
   }
