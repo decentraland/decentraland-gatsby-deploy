@@ -33,7 +33,6 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
 
   if (options.logGroup) {
     const lambdaLogginPolicy = new aws.iam.Policy(`${name}-lambda-loggin-policy`, {
-      path: '/lambda@edge/',
       description: 'IAM policy for logging from a lambda@edge',
       policy: {
         "Version": "2012-10-17",
