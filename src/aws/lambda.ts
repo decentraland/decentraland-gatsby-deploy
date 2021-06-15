@@ -9,7 +9,7 @@ export type CreateLambdaOptions = {
 
 export function createSecurityHeadersLambda(name: string, options: Partial<CreateLambdaOptions> = {}) {
   const role = new aws.iam.Role(`${name}-lambda-role`, {
-    path: '/',
+    path: '/lambda@edge/',
     managedPolicyArns: [
       aws.iam.ManagedPolicies.AWSLambdaBasicExecutionRole
     ],
@@ -50,7 +50,10 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
       }
     })
 
-    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, { role, policyArn: lambdaLogginPolicy.arn })
+    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, {
+      role: role.name,
+      policyArn: lambdaLogginPolicy.arn
+    })
   }
 
   const lambda = new aws.lambda.Function(`${name}-lambda`,
