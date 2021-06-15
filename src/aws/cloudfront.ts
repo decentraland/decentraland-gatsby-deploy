@@ -46,7 +46,8 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
 export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([bucket.arn, getStaticResponseViewer()]).apply(([targetOriginId, viewerResponse]) => ({
+  const [ , qualifier ] = getStaticResponseViewer()
+  return all([bucket.arn, qualifier]).apply(([targetOriginId, viewerResponse]) => ({
     compress: true,
     targetOriginId,
     pathPattern,
@@ -88,7 +89,8 @@ export function staticContentBehavior(pathPattern: string, bucket: aws.s3.Bucket
  * @see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesPathPattern
  */
 export function immutableContentBehavior(pathPattern: string, bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([bucket.arn, getStaticResponseViewer()]).apply(([targetOriginId, viewerResponse]) => ({
+  const [ , qualifier ] = getStaticResponseViewer()
+  return all([bucket.arn, qualifier]).apply(([targetOriginId, viewerResponse]) => ({
     compress: true,
     targetOriginId,
     pathPattern,
@@ -257,8 +259,9 @@ export function httpProxyBehavior(pathPattern: string, target: HttpProxyOrigin):
   const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
   const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
   const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
+  const [ , qualifier ] = getStaticResponseViewer()
 
-  return all([endpoint, getStaticResponseViewer()]).apply(([endpoint, viewerResponse]) => {
+  return all([endpoint, qualifier]).apply(([endpoint, viewerResponse]) => {
     const url = new URL(endpoint)
     const hostname = url.hostname
     const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname

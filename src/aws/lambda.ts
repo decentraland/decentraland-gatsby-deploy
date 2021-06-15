@@ -32,5 +32,10 @@ export const getStaticResponseViewer = withCache(function createStaticResponseVi
    }),
   })
 
-  return lambda
+  const qualifier = new aws.lambda.Alias(`static-response-viewer-qualifier`, {
+    functionName: lambda.arn,
+    functionVersion: '$LATEST'
+  })
+
+  return [lambda, qualifier]
 })
