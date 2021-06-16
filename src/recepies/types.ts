@@ -201,4 +201,23 @@ export type GatsbyOptions = {
    * @default false
    */
   useEmail?: boolean | string[]
+
+  /**
+   * Create a lambda function that inject headers to each static response:
+   *
+   * Security headers:
+   *  - Strict-Transport-Security
+   *  - X-Content-Type-Options
+   *  - X-Frame-Options
+   *  - X-XSS-Protection
+   *  - Referrer-Policy
+   *  - Content-Security-Policy
+   *
+   * CORS headers (only to `.json` and `.xml` files):
+   *  - Access-Control-Allow-Origin
+   *  - Access-Control-Allow-Headers
+   *  - Access-Control-Allow-Methods
+   *
+   */
+  useSecurityHeaders?: boolean
 };

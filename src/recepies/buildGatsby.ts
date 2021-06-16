@@ -14,7 +14,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -59,9 +59,11 @@ export async function buildGatsby(config: GatsbyOptions) {
     tags,
   })
 
-  const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
-  const staticLambdaOptions = {
-    lambdaFunctionAssociations: [
+  const staticLambdaOptions: BehaviorOptions = {}
+
+  if (config.useSecurityHeaders) {
+    const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
+    staticLambdaOptions.lambdaFunctionAssociations = [
       {
         includeBody: false,
         eventType: 'viewer-response',
@@ -69,7 +71,6 @@ export async function buildGatsby(config: GatsbyOptions) {
       }
     ]
   }
-
 
   if (config.serviceImage && config.serviceSource) {
     throw new Error(`Config configuration: you can use "serviceImage" or "serviceSource" but not both.`)

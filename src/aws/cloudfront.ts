@@ -3,6 +3,8 @@ import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { HttpProxyOrigin } from "./types";
 
+export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'>
+
 /*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
  ******************************************************/
@@ -47,7 +49,7 @@ export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.clou
 export function staticContentBehavior(
   pathPattern: string,
   bucket: aws.s3.Bucket,
-  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+  options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn ]).apply(([targetOriginId ]) => ({
     ...options,
@@ -88,7 +90,7 @@ export function staticContentBehavior(
 export function immutableContentBehavior(
   pathPattern: string,
   bucket: aws.s3.Bucket,
-  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+  options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
     ...options,
@@ -123,7 +125,7 @@ export function immutableContentBehavior(
  */
 export function defaultStaticContentBehavior(
   bucket: aws.s3.Bucket,
-  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+  options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
   return staticContentBehavior('/*', bucket, options).apply(({ pathPattern, ...behavior }) => behavior)
 }
@@ -169,7 +171,7 @@ export function albOrigin(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalanc
 export function serverBehavior(
   pathPattern: string,
   alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer,
-  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+  options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([alb.loadBalancer.arn]).apply(([targetOriginId]) => ({
     ...options,
@@ -260,7 +262,7 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
 export function httpProxyBehavior(
   pathPattern: string,
   target: HttpProxyOrigin,
-  options: Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'> = {}
+  options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   const endpoint = typeof target === 'string' ? target : target.origin;
   const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
