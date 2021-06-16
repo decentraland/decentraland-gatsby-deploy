@@ -50,7 +50,7 @@ exports.handler = function (event, _context, callback) {
   const uri = request.uri || ''
   const tld = host.split('.').slice(-2).join('.')
   const scriptPolicies = Array.from(new Set([
-    '"self"',
+    `'self'`,
     `https://${tld}`,
     `https://*.${tld}`,
     'https://decentraland.org',
@@ -85,10 +85,10 @@ exports.handler = function (event, _context, callback) {
   setHeader(
     'Content-Security-Policy',
     [
-      `default-src "self"`,
+      `default-src 'self'`,
       `script-src ${scriptPolicies}`,
       `font-src https: data:`,
-      `style-src https: data:`,
+      `style-src 'unsafe-inline' https: data:`,
       `img-src https: data:`,
       `connect-src https:`,
       `frame-src https:`,
