@@ -8,7 +8,7 @@ export type CreateLambdaOptions = {
 }
 
 export function createSecurityHeadersLambda(name: string, options: Partial<CreateLambdaOptions> = {}) {
-  const role = new aws.iam.Role(`${name}-lambda-role`, {
+  const role = new aws.iam.Role(`${name}-lambda-edge-role`, {
     path: '/lambda@edge/',
     managedPolicyArns: [
       aws.iam.ManagedPolicies.AWSLambdaBasicExecutionRole
@@ -32,7 +32,7 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
   })
 
   if (options.logGroup) {
-    const lambdaLogginPolicy = new aws.iam.Policy(`${name}-lambda-loggin-policy`, {
+    const lambdaLogginPolicy = new aws.iam.Policy(`${name}-lambda-edge-loggin-policy`, {
       description: 'IAM policy for logging from a lambda@edge',
       policy: {
         "Version": "2012-10-17",
@@ -50,13 +50,13 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
       }
     })
 
-    new aws.iam.RolePolicyAttachment(`${name}-lambda-logs`, {
+    new aws.iam.RolePolicyAttachment(`${name}-lambda-edge-logs`, {
       role: role.name,
       policyArn: lambdaLogginPolicy.arn
     })
   }
 
-  const lambda = new aws.lambda.Function(`${name}-lambda`,
+  const lambda = new aws.lambda.Function(`${name}-security-headers-lambda`,
     {
       role: role.arn,
       handler: 'index.handler',
