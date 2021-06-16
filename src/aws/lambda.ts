@@ -59,7 +59,7 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
   const lambda = new aws.lambda.Function(`${name}-lambda`,
     {
       role: role.arn,
-      handler: 'exports.handler',
+      handler: 'index.handler',
       runtime: 'nodejs12.x',
       description: 'Adds security headers to the response',
       publish: true,
