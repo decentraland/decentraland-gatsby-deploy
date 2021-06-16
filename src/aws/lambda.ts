@@ -61,7 +61,6 @@ export function createSecurityHeadersLambda(name: string, options: Partial<Creat
       role: role.arn,
       handler: 'exports.handler',
       runtime: 'nodejs12.x',
-      name: 'security-headers',
       description: 'Adds security headers to the response',
       publish: true,
       tags: options.tags || {},
