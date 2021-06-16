@@ -85,7 +85,13 @@ exports.handler = function (event, _context, callback) {
   setHeader(
     'Content-Security-Policy',
     [
-      `default-src 'self'`,
+      `default-src 'none'`,
+      `base-uri 'self'`,
+      `form-action 'self'`,
+      `manifest-src 'self'`,
+      `media-src 'self'`,
+      `prefetch-src 'self'`,
+      `worker-src 'self'`,
       `script-src ${scriptPolicies}`,
       `font-src https: data:`,
       `style-src 'unsafe-inline' https: data:`,
@@ -94,7 +100,7 @@ exports.handler = function (event, _context, callback) {
       `frame-src https:`,
       `child-src https:`,
       `object-src 'none'`,
-      `frame-ancestors 'none'`
+      `frame-ancestors 'none'`,
     ].join('; ')
   )
 
