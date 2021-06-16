@@ -51,6 +51,8 @@ exports.handler = function (event, _context, callback) {
   const tld = host.split('.').slice(-2).join('.')
   const scriptPolicies = Array.from(new Set([
     `'self'`,
+    `'unsafe-inline'`,
+    `'unsafe-eval'`,
     `https://${tld}`,
     `https://*.${tld}`,
     'https://decentraland.org',
@@ -90,10 +92,10 @@ exports.handler = function (event, _context, callback) {
       `form-action 'self'`,
       `manifest-src 'self'`,
       `media-src 'self'`,
-      `prefetch-src 'self'`,
       `worker-src 'self'`,
       `script-src ${scriptPolicies}`,
       `font-src https: data:`,
+      `prefetch-src https: data:`,
       `style-src 'unsafe-inline' https: data:`,
       `img-src https: data:`,
       `connect-src https:`,
