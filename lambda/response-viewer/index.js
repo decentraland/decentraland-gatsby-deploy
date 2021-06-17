@@ -57,10 +57,10 @@ exports.handler = function (event, _context, callback) {
     `https://*.${tld}`,
     'https://decentraland.org',
     'https://*.decentraland.org',
-    // 'https://ajax.cloudflare.com', deprecated
     'https://www.google-analytics.com',
+    // 'https://ajax.cloudflare.com', deprecated
     // 'https://www.googletagmanager.com', disabled
-    'https://cdn.rollbar.com',
+    // 'https://cdn.rollbar.com',
     // 'https://a.klaviyo.com', deprecated
     // 'https://widget.intercom.io', disabled
     // 'https://js.intercomcdn.com', disabled
