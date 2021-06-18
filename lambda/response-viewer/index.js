@@ -58,7 +58,7 @@ exports.handler = function (event, _context, callback) {
     'https://decentraland.org',
     'https://*.decentraland.org',
     'https://www.google-analytics.com',
-    // 'https://ajax.cloudflare.com', deprecated
+    'https://ajax.cloudflare.com',
     // 'https://www.googletagmanager.com', disabled
     // 'https://cdn.rollbar.com',
     // 'https://a.klaviyo.com', deprecated
