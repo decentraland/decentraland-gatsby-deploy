@@ -106,7 +106,16 @@ exports.handler = function (event, _context, callback) {
     ].join('; ')
   )
 
-  if (uri.endsWith('.json') || uri.endsWith('.xml')) {
+  if (
+    [
+      // data
+      '.json', '.xml', '.csv', '.txt',
+
+      // images
+      '.png', '.apng', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'
+    ]
+      .some((ext) => uri.endsWith(ext))
+  ) {
     setHeader('Access-Control-Allow-Origin', '*')
     setHeader('Access-Control-Allow-Headers', 'Content-Type')
     setHeader('Access-Control-Allow-Methods', 'OPTIONS,HEAD,GET')
