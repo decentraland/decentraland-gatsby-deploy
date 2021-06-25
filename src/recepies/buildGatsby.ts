@@ -87,6 +87,12 @@ export async function buildGatsby(config: GatsbyOptions) {
     const portMappings: awsx.ecs.ContainerPortMappingProvider[] = []
     environment = [
       ...environment,
+      variable('ENVIRONMENT', process.env.ENVIRONMENT),
+      variable('COMMIT_SHA', process.env.CI_COMMIT_SHA),
+      variable('COMMIT_SHORT_SHA', process.env.CI_COMMIT_SHORT_SHA),
+      variable('COMMIT_REF_NAME', process.env.CI_COMMIT_REF_NAME),
+      variable('COMMIT_BRANCH', process.env.CI_COMMIT_BRANCH),
+      variable('COMMIT_TAG', process.env.CI_COMMIT_TAG),
       variable('IMAGE', serviceImage),
       variable('STACK_ID', getStackId()),
       variable('SERVICE_NAME', serviceName),

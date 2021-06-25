@@ -32,7 +32,7 @@ function toValue(value) {
   }
 }
 
-function environment(name, value) {
+function environment(name, value, options) {
   if (!name || value === null || value === undefined) {
     return
   }
@@ -48,6 +48,11 @@ function environment(name, value) {
   value = toValue(value)
   output.push(`export ${name}=${JSON.stringify(value)}`)
   console.log(grey(`export  ${cyan(name)}=${green(JSON.stringify(value))}`), )
+
+  if (options && options.public === true) {
+    output.push(`export GATSBY_${name}=${JSON.stringify(value)}`)
+    console.log(grey(`export GATSBY_${cyan(name)}=${green(JSON.stringify(value))}`), )
+  }
 }
 
 function stats(file) {
@@ -140,6 +145,7 @@ Promise.resolve()
     const project = pulumi.name
     const prefix = project + ':'
 
+    // Pulumi environment
     environment('PULUMI_PROJECT', pulumi['name']);
 
     for (const key of Object.keys(pulumi)) {
@@ -153,6 +159,14 @@ Promise.resolve()
         environment(key, config[key])
       }
     }
+
+    // Gitlab environment
+    environment('ENVIRONMENT', process.env.ENVIRONMENT, { public: true })
+    environment('COMMIT_SHA', process.env.CI_COMMIT_SHA, { public: true })
+    environment('COMMIT_SHORT_SHA', process.env.CI_COMMIT_SHORT_SHA, { public: true })
+    environment('COMMIT_REF_NAME', process.env.CI_COMMIT_REF_NAME, { public: true })
+    environment('COMMIT_BRANCH', process.env.CI_COMMIT_BRANCH, { public: true })
+    environment('COMMIT_TAG', process.env.CI_COMMIT_TAG, { public: true })
   })
   .then(() => {
     // readFileSync
