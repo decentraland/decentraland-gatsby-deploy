@@ -6,6 +6,8 @@ describe(`src/aws/s3`, () => {
     test(`should accept an empty map`, () => {
       expect(routingRules()).toEqual([])
       expect(routingRules({})).toEqual([])
+      expect(routingRules({}, { hostname: 'example.com' })).toEqual([])
+      expect(routingRules({}, { hostname: 'example.com', protocol: 'https' })).toEqual([])
     })
 
     test(`should ignore invalid maps key`, () => {
@@ -17,7 +19,10 @@ describe(`src/aws/s3`, () => {
           '/path2/*': 'invalid/*',
           '/pat3/*': 'invalid/$1',
       }
+
       expect(routingRules(map)).toEqual([])
+      expect(routingRules(map, { hostname: 'example.com' })).toEqual([])
+      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual([])
     })
 
     test(`should map "/prev/*" => "/next/" using ReplaceKeyWith`, () => {
@@ -29,7 +34,23 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
+      const hostRules = [
+        {
+          Condition: { KeyPrefixEquals: "agora/" },
+          Redirect: { HostName: 'example.com', ReplaceKeyWith: "dao/" }
+        },
+      ]
+
+      const hostProtocolRules = [
+        {
+          Condition: { KeyPrefixEquals: "agora/" },
+          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyWith: "dao/" }
+        },
+      ]
+
       expect(routingRules(map)).toEqual(rules)
+      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "/next/$1" using ReplaceKeyPrefixWith`, () => {
@@ -41,7 +62,23 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
+      const hostRules = [
+        {
+          Condition: { KeyPrefixEquals: "docs/" },
+          Redirect: { HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
+        },
+      ]
+
+      const hostProtocolRules = [
+        {
+          Condition: { KeyPrefixEquals: "docs/" },
+          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyPrefixWith: "documentation/" }
+        },
+      ]
+
       expect(routingRules(map)).toEqual(rules)
+      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "https://example.com/next/" using Protocol, HostName and ReplaceKeyWith`, () => {
@@ -96,7 +133,47 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
+      const hostRules = [
+        {
+          Condition: { KeyPrefixEquals: "agora/" },
+          Redirect: { HostName: 'example.com', ReplaceKeyWith: "dao/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "docs/" },
+          Redirect: { HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "avatars/" },
+          Redirect: { Protocol: "https", HostName: "builder.decentraland.org", ReplaceKeyWith: "names/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "builder/" },
+          Redirect: { Protocol: "https", HostName: "builder.decentraland.org", ReplaceKeyPrefixWith: "" }
+        },
+      ]
+
+      const hostProtocolRules = [
+        {
+          Condition: { KeyPrefixEquals: "agora/" },
+          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyWith: "dao/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "docs/" },
+          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyPrefixWith: "documentation/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "avatars/" },
+          Redirect: { Protocol: "https", HostName: "builder.decentraland.org", ReplaceKeyWith: "names/" }
+        },
+        {
+          Condition: { KeyPrefixEquals: "builder/" },
+          Redirect: { Protocol: "https", HostName: "builder.decentraland.org", ReplaceKeyPrefixWith: "" }
+        },
+      ]
+
       expect(routingRules(map)).toEqual(rules)
+      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
   })
 })
