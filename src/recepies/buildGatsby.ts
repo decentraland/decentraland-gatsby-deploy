@@ -14,7 +14,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, defaultServerBehavior, staticContentBehavior } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -44,6 +44,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   let environment: awsx.ecs.KeyValuePair[] = []
   let serviceOrigins: Output<aws.types.input.cloudfront.DistributionOrigin>[] = []
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
+  let serviceLoadBancer: awsx.elasticloadbalancingv2.ApplicationLoadBalancer | null = null
   let serviceSecurityGroups: Output<string>[] = []
   let serviceLabel: Record<string, string> = {}
 
@@ -155,6 +156,7 @@ export async function buildGatsby(config: GatsbyOptions) {
       })
 
       // add load balancer to origin list
+      serviceLoadBancer = alb
       serviceOrigins = [
         ...serviceOrigins,
         albOrigin(alb)
@@ -345,10 +347,21 @@ export async function buildGatsby(config: GatsbyOptions) {
     bucketOrigin(contentBucket)
   ]
 
+  let defaultCacheBehavior: Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior>
+  if (serviceLoadBancer && (config.servicePaths || []).includes('/')) {
+    defaultCacheBehavior = defaultServerBehavior(serviceLoadBancer)
+    serviceOrderedCacheBehaviors = [
+      ...serviceOrderedCacheBehaviors,
+      staticContentBehavior('/?*', contentBucket, staticLambdaOptions)
+    ]
+  } else {
+    defaultCacheBehavior = defaultStaticContentBehavior(contentBucket, staticLambdaOptions)
+  }
+
   // logsBucket is an S3 bucket that will contain the CDN's request logs.
   const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
   const cdn = all([
-    defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
+    defaultCacheBehavior,
     all(serviceOrigins),
     all(serviceOrderedCacheBehaviors),
     logs.bucketDomainName

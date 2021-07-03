@@ -5,6 +5,10 @@ import { HttpProxyOrigin } from "./types";
 
 export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'>
 
+export function toDefaultBehavior(behavior: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
+  return behavior.apply(({ pathPattern, ...behavior }) => behavior)
+}
+
 /*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
  ******************************************************/
@@ -127,7 +131,7 @@ export function defaultStaticContentBehavior(
   bucket: aws.s3.Bucket,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return staticContentBehavior('/*', bucket, options).apply(({ pathPattern, ...behavior }) => behavior)
+  return toDefaultBehavior(staticContentBehavior('/*', bucket, options))
 }
 
 /******************************************************************
@@ -202,7 +206,7 @@ export function serverBehavior(
  * > list it in the `origins` prop, please check the `albOrigin` function
  */
 export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return serverBehavior('/*', alb).apply(({ pathPattern, ...behavior }) => behavior)
+  return toDefaultBehavior(serverBehavior('/*', alb))
 }
 
 /******************************************************************
