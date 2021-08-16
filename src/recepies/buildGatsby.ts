@@ -302,7 +302,11 @@ export async function buildGatsby(config: GatsbyOptions) {
   const contentRoutingRules = routingRules(config.contentRoutingRules, { hostname: serviceDomain, protocol: 'https' })
   // contentBucket is the S3 bucket that the website's contents will be stored in.
   const contentBucket = new aws.s3.Bucket(`${serviceName}-website`, {
-    acl: "public-read",
+    acl: "private",
+
+    tags: {
+      Name: serviceDomain
+    },
 
     // Configure S3 to serve bucket contents as a website. This way S3 will automatically convert
     // requests for "foo/" to "foo/index.html".
@@ -347,21 +351,10 @@ export async function buildGatsby(config: GatsbyOptions) {
     bucketOrigin(contentBucket)
   ]
 
-  let defaultCacheBehavior: Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior>
-  if (serviceLoadBancer && (config.servicePaths || []).includes('/')) {
-    defaultCacheBehavior = defaultServerBehavior(serviceLoadBancer)
-    serviceOrderedCacheBehaviors = [
-      ...serviceOrderedCacheBehaviors,
-      staticContentBehavior('/?*', contentBucket, staticLambdaOptions)
-    ]
-  } else {
-    defaultCacheBehavior = defaultStaticContentBehavior(contentBucket, staticLambdaOptions)
-  }
-
   // logsBucket is an S3 bucket that will contain the CDN's request logs.
   const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
   const cdn = all([
-    defaultCacheBehavior,
+    defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
     all(serviceOrigins),
     all(serviceOrderedCacheBehaviors),
     logs.bucketDomainName
