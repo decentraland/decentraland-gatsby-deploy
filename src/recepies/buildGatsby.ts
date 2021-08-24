@@ -15,7 +15,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, defaultServerBehavior, staticContentBehavior } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
