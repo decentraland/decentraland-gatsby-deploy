@@ -7,6 +7,7 @@ import { getCertificateFor } from "dcl-ops-lib/certificate";
 import { acceptAlbSecurityGroupId } from "dcl-ops-lib/acceptAlb";
 import { acceptBastionSecurityGroupId } from "dcl-ops-lib/acceptBastion";
 import { acceptDbSecurityGroupId } from "dcl-ops-lib/acceptDb";
+import { setRecord } from "dcl-ops-lib/cloudflare";
 import { accessTheInternetSecurityGroupId } from "dcl-ops-lib/accessTheInternet";
 import { getInternalServiceDiscoveryNamespaceId } from "dcl-ops-lib/supra";
 import { getAlb } from "dcl-ops-lib/alb";
@@ -44,7 +45,6 @@ export async function buildGatsby(config: GatsbyOptions) {
   let environment: awsx.ecs.KeyValuePair[] = []
   let serviceOrigins: Output<aws.types.input.cloudfront.DistributionOrigin>[] = []
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
-  let serviceLoadBancer: awsx.elasticloadbalancingv2.ApplicationLoadBalancer | null = null
   let serviceSecurityGroups: Output<string>[] = []
   let serviceLabel: Record<string, string> = {}
 
@@ -156,7 +156,6 @@ export async function buildGatsby(config: GatsbyOptions) {
       })
 
       // add load balancer to origin list
-      serviceLoadBancer = alb
       serviceOrigins = [
         ...serviceOrigins,
         albOrigin(alb)
@@ -419,6 +418,14 @@ export async function buildGatsby(config: GatsbyOptions) {
   }));
 
   const records = domains.map(domain => createRecordForCloudfront(domain, cdn))
+  if (config.usePublicTLD) {
+    await setRecord({
+      proxied: true,
+      type: 'CNAME',
+      recordName: serviceName,
+      value: cdn.domainName
+    })
+  }
 
   // Export properties from this stack. This prints them at the end of `pulumi up` and
   // makes them easier to access from the pulumi.com.
