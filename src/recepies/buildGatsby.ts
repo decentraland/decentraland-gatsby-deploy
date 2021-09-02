@@ -251,6 +251,7 @@ export async function buildGatsby(config: GatsbyOptions) {
           containers: {
             [serviceName]: {
               image: serviceImage,
+              cpu: config.serviceCPUs,
               memoryReservation: config.serviceMemory || 256,
               essential: true,
               environment,

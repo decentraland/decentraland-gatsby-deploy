@@ -123,6 +123,13 @@ export type GatsbyOptions = {
   serviceDesiredCount?: number
 
   /**
+   * The number of cpu units used by the task.
+   *
+   * @default 256
+   */
+  serviceCPUs?: number
+
+  /**
    * (only if `serviceImage` or `serviceSource` is defined)
    * Memory reserved to the fargare service (in MB)
    *
