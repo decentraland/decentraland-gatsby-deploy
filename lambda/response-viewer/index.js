@@ -86,42 +86,52 @@ exports.handler = function (event, _context, callback) {
   setHeader('X-Frame-Options', 'DENY')
   setHeader('X-XSS-Protection', '1; mode=block')
   setHeader('Referrer-Policy', 'no-referrer, strict-origin-when-cross-origin')
-  setHeader(
-    'Content-Security-Policy',
-    [
-      `default-src 'none'`,
-      `base-uri 'self'`,
-      `form-action 'self'`,
-      `manifest-src 'self'`,
-      `media-src 'self'`,
-      `worker-src 'self'`,
-      `script-src ${scriptPolicies}`,
-      `font-src https: data:`,
-      `prefetch-src https: data:`,
-      `style-src 'unsafe-inline' https: data:`,
-      `img-src https: data:`,
-      `connect-src https:`,
-      `frame-src https:`,
-      `child-src https:`,
-      `object-src 'none'`,
-      `frame-ancestors 'none'`,
-    ].join('; ')
-  )
+  setHeader('Content-Security-Policy', getContentSecurityPolicy(scriptPolicies))
 
-  if (
-    [
-      // data
-      '.json', '.xml', '.csv', '.txt',
-
-      // images
-      '.png', '.apng', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'
-    ]
-      .some((ext) => uri.endsWith(ext))
-  ) {
+  if (isPublicAvailable(uri)) {
     setHeader('Access-Control-Allow-Origin', '*')
     setHeader('Access-Control-Allow-Headers', 'Content-Type')
     setHeader('Access-Control-Allow-Methods', 'OPTIONS,HEAD,GET')
   }
 
   callback(null, response)
+}
+
+const publicExtensions = [
+  // data
+  '.json', '.xml', '.csv', '.txt',
+
+  // images
+  '.png', '.apng', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico'
+]
+
+/**
+ * @param {string} uri
+ * @returns boolean
+ */
+function isPublicAvailable(uri) {
+  return publicExtensions.some((ext) => uri.endsWith(ext)) ||
+    uri.startsWith('/.well-known/')
+}
+
+const defaultContentSecurityPolicy = [
+  `default-src 'none'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  `manifest-src 'self'`,
+  `media-src 'self'`,
+  `worker-src 'self'`,
+  `font-src https: data:`,
+  `prefetch-src https: data:`,
+  `style-src 'unsafe-inline' https: data:`,
+  `img-src https: data:`,
+  `connect-src https:`,
+  `frame-src https:`,
+  `child-src https:`,
+  `object-src 'none'`,
+  `frame-ancestors 'none'`,
+].join('; ')
+
+function getContentSecurityPolicy(scriptPolicy) {
+  return defaultContentSecurityPolicy + '; ' +scriptPolicy
 }
