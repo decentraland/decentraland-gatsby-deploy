@@ -21,5 +21,5 @@ fi
 
 aws s3 cp \
   --acl public-read \
-  $1/ $target \
+  $origin $target \
   $@
