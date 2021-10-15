@@ -9,6 +9,9 @@ if [ ! $1 ]; then
   exit 2;
 fi
 
+origin=$1/
+sift
+
 target=s3://$(pulumi stack output bucketName)/
 
 if [ ! $target ]; then
@@ -16,4 +19,7 @@ if [ ! $target ]; then
   exit 2;
 fi
 
-aws s3 sync --acl public-read $1/ $target
+aws s3 cp \
+  --acl public-read \
+  $1/ $target \
+  $@
