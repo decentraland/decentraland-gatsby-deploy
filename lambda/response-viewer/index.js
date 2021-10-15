@@ -133,5 +133,5 @@ const defaultContentSecurityPolicy = [
 ].join('; ')
 
 function getContentSecurityPolicy(scriptPolicy) {
-  return defaultContentSecurityPolicy + '; ' +scriptPolicy
+  return defaultContentSecurityPolicy + '; script-src ' +scriptPolicy
 }
