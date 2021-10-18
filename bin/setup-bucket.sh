@@ -1,4 +1,4 @@
-#! /bin/bash
+! /bin/bash
 
 source dcl-env
 
@@ -10,7 +10,7 @@ if [ ! $1 ]; then
 fi
 
 origin=$1/
-sift
+shift
 
 target=s3://$(pulumi stack output bucketName)/
 
