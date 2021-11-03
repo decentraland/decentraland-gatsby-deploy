@@ -20,6 +20,7 @@ if [ ! $target ]; then
 fi
 
 aws s3 cp \
+  --recursive \
   --acl public-read \
   $origin $target \
   $@
