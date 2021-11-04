@@ -19,8 +19,10 @@ if [ ! $target ]; then
   exit 2;
 fi
 
+set -o noglob
 aws s3 cp \
   --recursive \
   --acl public-read \
   $origin $target \
   $@
+set +o noglob
