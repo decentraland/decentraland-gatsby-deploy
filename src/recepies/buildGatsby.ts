@@ -4,11 +4,11 @@ import * as awsx from "@pulumi/awsx";
 
 import { env, domain as envDomain, publicDomain, publicTLD, envTLD } from "dcl-ops-lib/domain";
 import { getCertificateFor } from "dcl-ops-lib/certificate";
-import { acceptAlbSecurityGroupId } from "dcl-ops-lib/acceptAlb";
-import { acceptBastionSecurityGroupId } from "dcl-ops-lib/acceptBastion";
+import { makeSecurityGroupAccessibleFromSharedAlb } from "dcl-ops-lib/acceptAlb";
+import { makeSecurityGroupAccessibleFromBastion } from "dcl-ops-lib/acceptBastion";
 import { acceptDbSecurityGroupId } from "dcl-ops-lib/acceptDb";
 import { setRecord } from "dcl-ops-lib/cloudflare";
-import { accessTheInternetSecurityGroupId } from "dcl-ops-lib/accessTheInternet";
+import { makeSecurityGroupAccessTheInternet } from "dcl-ops-lib/accessTheInternet";
 import { getInternalServiceDiscoveryNamespaceId } from "dcl-ops-lib/supra";
 import { getAlb } from "dcl-ops-lib/alb";
 import { getVpc } from "dcl-ops-lib/vpc";
@@ -102,17 +102,23 @@ export async function buildGatsby(config: GatsbyOptions) {
       ...currentStackConfigurations(),
       ...(config.serviceEnvironment || []),
     ]
+    const vpc = await getVpc()
+    const taskSecurityGroup = new awsx.ec2.SecurityGroup(`tsg-${serviceName}`, {
+      vpc
+    })
 
-    const cluster = await getCluster()
+    await makeSecurityGroupAccessTheInternet(taskSecurityGroup)
+    await makeSecurityGroupAccessibleFromBastion(taskSecurityGroup)
+
     serviceSecurityGroups = [
       ...serviceSecurityGroups,
-      await acceptBastionSecurityGroupId(),
       await acceptDbSecurityGroupId(),
-      await accessTheInternetSecurityGroupId(),
     ]
 
     // if config.servicePaths !== false service will ve public
     if (config.servicePaths !== false) {
+      makeSecurityGroupAccessibleFromSharedAlb(taskSecurityGroup)
+
       // iniject public service environment
       environment = [
         ...environment,
@@ -126,12 +132,10 @@ export async function buildGatsby(config: GatsbyOptions) {
       // grant access to load banlancer
       serviceSecurityGroups = [
         ...serviceSecurityGroups,
-        await acceptAlbSecurityGroupId(),
         await createMetricsSecurityGroupId(serviceName, port)
       ]
 
       // create target group
-      const vpc = await getVpc()
       const { alb, listener } = await getAlb();
       const targetGroup = alb.createTargetGroup(("tg-" + serviceName).slice(-32), {
         vpc,
@@ -172,6 +176,11 @@ export async function buildGatsby(config: GatsbyOptions) {
       serviceLabel.ECS_PROMETHEUS_EXPORTER_PORT = String(port)
       serviceLabel.ECS_PROMETHEUS_METRICS_PATH = config.serviceMetricsPath || '/metrics'
     }
+
+    serviceSecurityGroups = [
+      ...serviceSecurityGroups,
+      taskSecurityGroup.id,
+    ]
 
     // attach AWS resources
     if (config.useBucket || config.useEmail) {
@@ -232,6 +241,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     })
 
     // create Fargate service
+    const cluster = await getCluster()
     new awsx.ecs.FargateService(
       serviceNameScoped,
       {
