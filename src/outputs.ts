@@ -55,6 +55,14 @@ export function environmentVariables(environment: (awsx.ecs.KeyValuePair | null 
   return { environmentVariables }
 }
 
+export function serviceImage(serviceImage: null | string | Output<string>) {
+  if (!serviceImage) {
+    return {}
+  }
+
+  return { serviceImage }
+}
+
 export function domainRecord(record: Output<aws.route53.Record> | null | undefined) {
   if (!record) {
     return {}

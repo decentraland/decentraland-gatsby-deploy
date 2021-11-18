@@ -42,6 +42,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   const port = config.servicePort || 4000
 
   // cloudfront mapping
+  let serviceImage: null | string | Output<string> = null
   let environment: awsx.ecs.KeyValuePair[] = []
   let serviceOrigins: Output<aws.types.input.cloudfront.DistributionOrigin>[] = []
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
@@ -78,7 +79,6 @@ export async function buildGatsby(config: GatsbyOptions) {
   }
 
   if (config.serviceImage || config.serviceSource) {
-    let serviceImage: string | Output<string>
     if (config.serviceImage) {
       serviceImage = config.serviceImage as string
     } else {
@@ -448,9 +448,10 @@ export async function buildGatsby(config: GatsbyOptions) {
     // debbuggin information
     ...outputs.cloudfrontDistributionBehaviors(cdn),
     ...outputs.securityGroups(serviceSecurityGroups),
+    ...outputs.serviceImage(serviceImage),
     ...outputs.environmentVariables(environment),
     ...outputs.emailDomains(emailDomains),
-    ...outputs.domainRecord(records[0])
+    ...outputs.domainRecord(records[0]),
   }
 
   return output
