@@ -47,7 +47,7 @@ function environment(name, value, options) {
   name = toName(name)
   value = toValue(value)
   output.push(`export ${name}=${JSON.stringify(value)}`)
-  console.log(grey(`export  ${cyan(name)}=${green(JSON.stringify(value))}`), )
+  console.log(grey(`export ${cyan(name)}=${green(JSON.stringify(value))}`), )
 
   if (options && options.public === true) {
     output.push(`export GATSBY_${name}=${JSON.stringify(value)}`)
