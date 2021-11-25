@@ -27,6 +27,7 @@ import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
 import { createSecurityHeadersLambda } from "../aws/lambda";
+import { createImmutableCachePageRule } from "../cloudflare/pageRule";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
@@ -436,6 +437,13 @@ export async function buildGatsby(config: GatsbyOptions) {
       recordName: serviceName,
       value: cdn.domainName
     })
+
+    if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
+      for (const path of config.contentImmutableCache) {
+        const target = serviceDomain + path
+        createImmutableCachePageRule(serviceName, target)
+      }
+    }
   }
 
   // Export properties from this stack. This prints them at the end of `pulumi up` and

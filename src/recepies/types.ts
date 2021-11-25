@@ -55,6 +55,21 @@ export type GatsbyOptions = {
   contentRoutingRules?: Record<string, string>
 
   /**
+   * Add page rule to these paths that chache everything for a year
+   *
+   * @example the use of a wildcard is allowd
+   *
+   * ```typescript
+   *    [
+   *      `/pdf/withpaper.pdf`,
+   *      `/static/*`
+   *      ``
+   *    ]
+   * ```
+   */
+  contentImmutableCache?: string[]
+
+  /**
    * Map of proxies to other url, allows you to use others domains as part of your content
    *
    * @example proxy all request from `/blog/*` to `https://blog.decentraland.io/blog/*`
@@ -220,7 +235,7 @@ export type GatsbyOptions = {
    *  - Referrer-Policy
    *  - Content-Security-Policy
    *
-   * CORS headers (only to `.json` and `.xml` files):
+   * CORS headers (only to images and data files):
    *  - Access-Control-Allow-Origin
    *  - Access-Control-Allow-Headers
    *  - Access-Control-Allow-Methods
