@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import cloudflare from '@pulumi/cloudflare'
+import * as cloudflare from '@pulumi/cloudflare'
 import { getZoneId } from 'dcl-ops-lib/cloudflare'
 
 /**
