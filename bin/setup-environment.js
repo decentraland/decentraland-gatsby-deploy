@@ -7,7 +7,7 @@ const { red, grey, green, cyan } = require('colors/safe')
 const [ _bin, _file, cwd, target, stack ] = process.argv
 const isGithub = !!process.env.GITHUB_ENV
 
-let output = [
+let output = isGithub ? [] : [
   '#!/usr/bin/env bash',
   'set -a'
 ]
