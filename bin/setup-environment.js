@@ -5,6 +5,7 @@ const { parse } = require('yaml')
 const { resolve, relative, dirname } = require('path')
 const { red, grey, green, cyan } = require('colors/safe')
 const [ _bin, _file, cwd, target, stack ] = process.argv
+const isGithub = !!process.env.GITHUB_ENV
 
 let output = [
   '#!/usr/bin/env bash',
@@ -46,13 +47,17 @@ function environment(name, value, options) {
 
   name = toName(name)
   value = toValue(value)
-  output.push(`export ${name}=${JSON.stringify(value)}`)
-  console.log(grey(`export ${cyan(name)}=${green(JSON.stringify(value))}`), )
+  setEnvironment(name, value)
 
   if (options && options.public === true) {
-    output.push(`export GATSBY_${name}=${JSON.stringify(value)}`)
-    console.log(grey(`export ${cyan('GATSBY_' + name)}=${green(JSON.stringify(value))}`), )
+    setEnvironment('GATSBY_' + name, value)
   }
+}
+
+function setEnvironment(name, value) {
+  const prefix = isGithub ? '' : 'export '
+  output.push(prefix + name + '=' + JSON.stringify(value))
+  console.log(grey(prefix) + cyan(name + '=') + green(JSON.stringify(value)))
 }
 
 function stats(file) {

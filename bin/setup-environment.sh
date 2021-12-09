@@ -15,8 +15,12 @@ fi
 
 node "$SCRIPT" "$PULUMI_PATH" "$OUTPUT" $2
 
-if [ -f "$OUTPUT" ]; then
-  chmod +x $OUTPUT
-  source "$OUTPUT"
-  # rm $OUTPUT
+if [ "$GITHUB_ENV" = "" ]; then
+  if [ -f "$OUTPUT" ]; then
+    chmod +x $OUTPUT
+    source "$OUTPUT"
+    # rm $OUTPUT
+  fi
+else
+  cat "$OUTPUT" >> "$GITHUB_ENV"
 fi
