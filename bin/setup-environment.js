@@ -101,7 +101,8 @@ function getPulumi() {
 
 function getPulumiConfig() {
   try {
-    if (!stack) {
+    let current_stack = stack
+    if (!current_stack) {
       const stack_output = execSync(`pulumi stack --cwd ${pulumi_dir} -i -v=0`, {  })
         .toString()
 
@@ -113,10 +114,10 @@ function getPulumiConfig() {
         throw new Error(`stack could not be detected, use stack`)
       }
 
-      stack = stack_line.trim().slice('Current stack is '.length, -1)
+      current_stack = stack_line.trim().slice('Current stack is '.length, -1)
     }
 
-    const pulumi_stack_file = resolve(pulumi_dir, `./Pulumi.${stack}.yml`)
+    const pulumi_stack_file = resolve(pulumi_dir, `./Pulumi.${current_stack}.yml`)
     ensureFile(pulumi_stack_file)
 
     const content = readFileSync(pulumi_stack_file, 'utf-8')
