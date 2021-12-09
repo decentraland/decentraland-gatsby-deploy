@@ -180,7 +180,9 @@ Promise.resolve()
     // readFileSync
   })
   .then(() => {
-    output.push(`rm "${output_file}"`)
+    if (!isGithub) {
+      output.push(`rm "${output_file}"`)
+    }
     writeFileSync(output_file, output.join('\n'))
     process.exit(0)
   })
