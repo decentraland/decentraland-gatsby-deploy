@@ -4,7 +4,7 @@ const { execSync } = require('child_process')
 const { parse } = require('yaml')
 const { resolve, relative, dirname } = require('path')
 const { red, grey, green, cyan } = require('colors/safe')
-const [ _bin, _file, cwd, target ] = process.argv
+const [ _bin, _file, cwd, target, stack ] = process.argv
 
 let output = [
   '#!/usr/bin/env bash',
@@ -101,18 +101,21 @@ function getPulumi() {
 
 function getPulumiConfig() {
   try {
-    const stack_output = execSync(`pulumi stack --cwd ${pulumi_dir} -i -v=0`, {  })
-      .toString()
+    if (!stack) {
+      const stack_output = execSync(`pulumi stack --cwd ${pulumi_dir} -i -v=0`, {  })
+        .toString()
 
-    const stack_line = stack_output
-      .split('\n')
-      .find(line => line.startsWith('Current stack is '))
+      const stack_line = stack_output
+        .split('\n')
+        .find(line => line.startsWith('Current stack is '))
 
-    if (!stack_line) {
-      throw new Error(`stack could not be detected, use stack`)
+      if (!stack_line) {
+        throw new Error(`stack could not be detected, use stack`)
+      }
+
+      stack = stack_line.trim().slice('Current stack is '.length, -1)
     }
 
-    const stack = stack_line.trim().slice('Current stack is '.length, -1)
     const pulumi_stack_file = resolve(pulumi_dir, `./Pulumi.${stack}.yml`)
     ensureFile(pulumi_stack_file)
 
@@ -136,7 +139,6 @@ function getPulumiConfig() {
     throw new Error(message)
   }
 }
-
 
 Promise.resolve()
   .then(() => {

@@ -13,7 +13,7 @@ if [ -f "node_modules/decentraland-gatsby-deploy/bin/setup-environment.js" ]; th
   SCRIPT="node_modules/decentraland-gatsby-deploy/bin/setup-environment.js"
 fi
 
-node "$SCRIPT" "$PULUMI_PATH" "$OUTPUT"
+node "$SCRIPT" "$PULUMI_PATH" "$OUTPUT" $2
 
 if [ -f "$OUTPUT" ]; then
   chmod +x $OUTPUT
