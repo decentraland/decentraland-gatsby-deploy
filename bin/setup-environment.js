@@ -55,9 +55,13 @@ function environment(name, value, options) {
 }
 
 function setEnvironment(name, value) {
-  const prefix = isGithub ? '' : 'export '
-  output.push(prefix + name + '=' + JSON.stringify(value))
-  console.log(grey(prefix) + cyan(name + '=') + green(JSON.stringify(value)))
+  if (isGithub) {
+    output.push(name + '=' + String(value))
+    console.log(cyan(name + '=') + green(String(value)))
+  } else {
+    output.push('export ' + name + '=' + JSON.stringify(value))
+    console.log(grey('export ') + cyan(name + '=') + green(JSON.stringify(value)))
+  }
 }
 
 function stats(file) {
