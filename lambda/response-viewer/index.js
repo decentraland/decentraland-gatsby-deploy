@@ -63,7 +63,7 @@ exports.handler = function (event, _context, callback) {
     'https://newassets.hcaptcha.com',
     'https://cdn.segment.com',
     'https://cdn.rollbar.com',
-    // 'https://www.googletagmanager.com', disabled
+    'https://www.googletagmanager.com',
     // 'https://a.klaviyo.com', deprecated
     // 'https://widget.intercom.io', disabled
     // 'https://js.intercomcdn.com', disabled
