@@ -64,6 +64,12 @@ exports.handler = function (event, _context, callback) {
     'https://cdn.segment.com',
     'https://cdn.rollbar.com',
     'https://www.googletagmanager.com',
+    'https://tagmanager.google.com',
+    'https://www.google-analytics.com',
+    'https://ssl.google-analytics.com',
+    'https://www.googleadservices.com',
+    'https://googleads.g.doubleclick.net',
+    'https://www.google.com',
     // 'https://a.klaviyo.com', deprecated
     // 'https://widget.intercom.io', disabled
     // 'https://js.intercomcdn.com', disabled
