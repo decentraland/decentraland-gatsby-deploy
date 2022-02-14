@@ -112,7 +112,7 @@ export type GatsbyOptions = {
    *
    * @default []
    */
-  additionalDomains?: string[]
+  additionalDomains?: (string | null | undefined | false)[]
 
   /**
    * Docker image used to create a fargate service,

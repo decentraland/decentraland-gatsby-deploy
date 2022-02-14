@@ -63,25 +63,27 @@ export function serviceImage(serviceImage: null | string | Output<string>) {
   return { serviceImage }
 }
 
+function route53Record(record: aws.route53.Record) {
+  return all([
+    record.name,
+    record.type,
+    record.aliases,
+  ]).apply(([name, type, aliases]) => {
+    if (!aliases || aliases.length === 0) {
+      return null
+    }
+
+    const alias = aliases[0]
+    return `${name} ${type} ${alias.name}`
+  })
+}
+
 export function domainRecord(record: Output<aws.route53.Record> | null | undefined) {
   if (!record) {
     return {}
   }
 
-  const domainRecords = record.apply(record => {
-    return all([
-      record.name,
-      record.type,
-      record.aliases,
-    ]).apply(([name, type, aliases]) => {
-      if (!aliases || aliases.length === 0) {
-        return null
-      }
-
-      const alias = aliases[0]
-      return `${name} ${type} ${alias.name}`
-    })
-  })
+  const domainRecords = record.apply(record => route53Record(record))
 
   if (!domainRecords) {
     return {}
@@ -91,21 +93,11 @@ export function domainRecord(record: Output<aws.route53.Record> | null | undefin
 }
 
 export function domainRecords(records: Output<aws.route53.Record>[]) {
-  return all(records.map(domainRecord))
-    .apply((...result) => {
-      const domainRecordList: ReturnType<typeof domainRecord>[] = result as any
-      const list = domainRecordList.filter(r => Boolean(r && r.domainRecords))
-
-      if (list.length === 0) {
-        return {}
-      }
-
-      let domainRecords: Output<string>[] = []
-      for (const record of list) {
-        domainRecords = [
-          ...domainRecords,
-          record.domainRecords as Output<string>
-        ]
+  return all(records)
+    .apply(records => all(records.map(route53Record)))
+    .apply((domainRecords) => {
+      if (domainRecords.length === 0) {
+        return null
       }
 
       return { domainRecords }

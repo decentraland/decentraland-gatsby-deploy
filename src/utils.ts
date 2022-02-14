@@ -20,6 +20,18 @@ export function getServiceName (name: string) {
   return slug(name)
 }
 
+export function getServiceNameAndTLD(domain: string) {
+  const parts = domain.split('.')
+  if (parts.length < 2) {
+    throw new Error(`Unexpected domain: "${domain}"`)
+  }
+
+  const tld = parts.slice(-2).join('.')
+  const serviceName = parts.slice(0, -2).join('.')
+
+  return [serviceName || null, tld] as const
+}
+
 export function getScopedServiceName (name: string) {
   const stackId = process.env.STACK_ID
   if (stackId) {

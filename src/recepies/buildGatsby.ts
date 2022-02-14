@@ -19,7 +19,7 @@ import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, 
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
-import { getScopedServiceName, getServiceVersion, getStackId, slug } from "../utils";
+import { getScopedServiceName, getServiceNameAndTLD, getServiceVersion, getStackId, slug } from "../utils";
 import { GatsbyOptions } from "./types";
 import * as outputs from "../outputs";
 import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
@@ -39,7 +39,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   const serviceTLD = config.usePublicTLD ? publicTLD : envTLD
   const serviceDomain = createServicSubdomain(serviceName, decentralandDomain)
   const emailDomains = []
-  const domains = [ serviceDomain, ...(config.additionalDomains || []) ]
+  const domains = [ serviceDomain, ...(config.additionalDomains || []) ].filter(Boolean) as string[]
   const port = config.servicePort || 4000
 
   // cloudfront mapping
@@ -430,18 +430,27 @@ export async function buildGatsby(config: GatsbyOptions) {
   }));
 
   const records = domains.map(domain => createRecordForCloudfront(domain, cdn))
-  if (config.usePublicTLD) {
-    await setRecord({
-      proxied: true,
-      type: 'CNAME',
-      recordName: serviceName,
-      value: cdn.domainName
-    })
+  for (const domain of domains) {
+    if (
+      domain.endsWith('.org') ||
+      domain.endsWith('.today') ||
+      domain.endsWith('.zone') ||
+      domain.endsWith('.systems') ||
+      domain.endsWith('.services')
+    ) {
+      const [ subdomain, tld ] = getServiceNameAndTLD(domain)
+      await setRecord({
+        proxied: true,
+        type: 'CNAME',
+        recordName: subdomain || tld,
+        value: cdn.domainName
+      })
 
-    if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
-      for (const path of config.contentImmutableCache) {
-        const target = serviceDomain + path
-        createImmutableCachePageRule(serviceName, target)
+      if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
+        for (const path of config.contentImmutableCache) {
+          const target = domain + path
+          createImmutableCachePageRule(slug(serviceName), target)
+        }
       }
     }
   }
@@ -459,7 +468,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     ...outputs.serviceImage(serviceImage),
     ...outputs.environmentVariables(environment),
     ...outputs.emailDomains(emailDomains),
-    ...outputs.domainRecord(records[0]),
+    ...outputs.domainRecords(records),
   }
 
   return output
