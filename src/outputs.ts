@@ -93,13 +93,8 @@ export function domainRecord(record: Output<aws.route53.Record> | null | undefin
 }
 
 export function domainRecords(records: Output<aws.route53.Record>[]) {
-  return all(records)
-    .apply(records => all(records.map(route53Record)))
-    .apply((domainRecords) => {
-      if (domainRecords.length === 0) {
-        return null
-      }
-
-      return { domainRecords }
-    })
+  return {
+    domainRecords: all(records)
+      .apply(records => all(records.map(route53Record)))
+  }
 }
