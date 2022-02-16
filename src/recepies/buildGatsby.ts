@@ -27,7 +27,7 @@ import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
 import { createSecurityHeadersLambda } from "../aws/lambda";
-import { createImmutableCachePageRule } from "../cloudflare/pageRule";
+import { createHostOverridePageRule, createImmutableCachePageRule } from "../cloudflare/pageRule";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
@@ -440,12 +440,21 @@ export async function buildGatsby(config: GatsbyOptions) {
       domain.endsWith('.services')
     ) {
       const [ subdomain, tld ] = getServiceNameAndTLD(domain)
-      await setRecord({
-        proxied: true,
-        type: 'CNAME',
-        recordName: subdomain || tld,
-        value: cdn.domainName
-      })
+
+      if (!subdomain) {
+        createHostOverridePageRule(slug(serviceName), {
+          source: tld,
+          destination: cdn.domainName
+        })
+
+      } else {
+        await setRecord({
+          proxied: true,
+          type: 'CNAME',
+          recordName: subdomain,
+          value: cdn.domainName
+        })
+      }
 
       if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
         for (const path of config.contentImmutableCache) {

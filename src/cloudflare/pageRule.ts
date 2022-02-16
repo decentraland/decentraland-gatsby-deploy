@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+import * as pulumi from '@pulumi/pulumi'
 import * as cloudflare from '@pulumi/cloudflare'
 import { getZoneId } from 'dcl-ops-lib/cloudflare'
 
@@ -27,8 +28,8 @@ export function createImmutableCachePageRule(service: string, target: string) {
 
 
 type ForwardOptions = {
-  source: string,
-  destination: string,
+  source: string
+  destination: pulumi.Input<string>
   statusCode?: 301 | 302 | 303 | 307 | 308
 }
 
@@ -48,6 +49,24 @@ export function createForwardPageRule(service: string, options: ForwardOptions) 
         url: options.destination,
         statusCode: options.statusCode || 302,
       }
+    }
+  })
+}
+
+type HostOverrideOptions = {
+  source: string,
+  destination: pulumi.Input<string>
+}
+
+/**
+ * Overwrite Host Header
+ */
+export function createHostOverridePageRule(service: string, options: HostOverrideOptions) {
+  return new cloudflare.PageRule(pageRuleName(service, options.source, 'override'), {
+    target: options.source,
+    zoneId: getZoneId(),
+    actions: {
+      hostHeaderOverride: options.destination
     }
   })
 }
