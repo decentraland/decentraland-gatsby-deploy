@@ -25,6 +25,13 @@ export function createImmutableCachePageRule(service: string, target: string) {
   })
 }
 
+
+type ForwardOptions = {
+  source: string,
+  destination: string,
+  statusCode?: 301 | 302 | 303 | 307 | 308
+}
+
 /**
  * Create a page rule on cloudflare that redirects any request matching with `target` to `destination`,
  * additionally the status code can be defined explicitly (302 as default)
@@ -32,14 +39,14 @@ export function createImmutableCachePageRule(service: string, target: string) {
  * `source` and `destination` can use cloudfrony match patter
  * @see https://developers.cloudflare.com/pages/platform/redirects
  */
-export function createForwardPageRule(service: string, source: string, destination: string, statusCode: 301 | 302 | 303 | 307 | 308 = 302) {
-  return new cloudflare.PageRule(pageRuleName(service, source, 'forward'), {
-    target: source,
+export function createForwardPageRule(service: string, options: ForwardOptions) {
+  return new cloudflare.PageRule(pageRuleName(service, options.source, 'forward'), {
+    target: options.source,
     zoneId: getZoneId(),
     actions: {
       forwardingUrl: {
-        statusCode,
-        url: destination
+        url: options.destination,
+        statusCode: options.statusCode || 302,
       }
     }
   })
