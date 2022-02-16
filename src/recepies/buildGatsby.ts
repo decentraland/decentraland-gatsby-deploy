@@ -15,7 +15,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, toDefaultBehavior } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -447,14 +447,14 @@ export async function buildGatsby(config: GatsbyOptions) {
           destination: cdn.domainName
         })
 
-      } else {
-        await setRecord({
-          proxied: true,
-          type: 'CNAME',
-          recordName: subdomain,
-          value: cdn.domainName
-        })
       }
+
+      await setRecord({
+        proxied: true,
+        type: 'CNAME',
+        recordName: subdomain || tld,
+        value: cdn.domainName
+      })
 
       if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
         for (const path of config.contentImmutableCache) {
