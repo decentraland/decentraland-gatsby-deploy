@@ -3,7 +3,7 @@ import * as cloudflare from '@pulumi/cloudflare'
 import { getZoneId } from 'dcl-ops-lib/cloudflare'
 
 function pageRuleName(service: string, target: string, ruleName: string) {
-  const hash = createHash('sha256').update(target).digest('hex')
+  const hash = createHash('sha256').update(target).digest('hex').slice(0, 6)
   return [ service, hash, ruleName ].join('-')
 }
 
