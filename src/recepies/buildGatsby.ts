@@ -443,7 +443,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
       if (!subdomain) {
         createHostOverridePageRule(slug(serviceName), {
-          source: tld,
+          source: tld + '/*',
           destination: cdn.domainName
         })
 
