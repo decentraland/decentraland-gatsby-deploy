@@ -32,6 +32,7 @@ import { createImmutableCachePageRule } from "../cloudflare/pageRule";
 const prometheus = new StackReference(`prometheus-${env}`)
 
 export async function buildGatsby(config: GatsbyOptions) {
+  console.log(`runngin gatsby recipe: `, JSON.stringify(config, null, 2))
   const serviceName = slug(config.name);
   const serviceNameScoped = getScopedServiceName(config.name);
   const serviceVersion = getServiceVersion()
