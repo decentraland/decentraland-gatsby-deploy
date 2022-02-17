@@ -57,6 +57,7 @@ export type GatsbyOptions = {
 
   /**
    * Add page rule to these paths that chache everything for a year
+   * @deprecated use cdn-uploader instead: https://github.com/decentraland/cdn-uploader
    *
    * @example the use of a wildcard is allowd
    *
