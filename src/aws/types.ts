@@ -1,5 +1,3 @@
-import * as pulumi from '@pulumi/pulumi'
-
 /**
  * Http target options for cloudfront cache behaviors
  */
