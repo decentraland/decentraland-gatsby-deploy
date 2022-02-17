@@ -440,21 +440,12 @@ export async function buildGatsby(config: GatsbyOptions) {
       domain.endsWith('.services')
     ) {
       const [ subdomain, tld ] = getServiceNameAndTLD(domain)
-
-      if (!subdomain) {
-        createHostOverridePageRule(slug(serviceName), {
-          source: tld + '/*',
-          destination: cdn.domainName
-        })
-
-      } else {
-        await setRecord({
-          proxied: true,
-          type: 'CNAME',
-          recordName: subdomain || tld,
-          value: cdn.domainName
-        })
-      }
+      await setRecord({
+        proxied: true,
+        type: 'CNAME',
+        recordName: subdomain || tld,
+        value: cdn.domainName
+      })
 
       if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
         for (const path of config.contentImmutableCache) {
