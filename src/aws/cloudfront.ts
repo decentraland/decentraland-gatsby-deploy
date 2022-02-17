@@ -1,4 +1,4 @@
-import { all, Output } from "@pulumi/pulumi";
+import { all, Output, Input } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import { HttpProxyOrigin } from "./types";
@@ -7,6 +7,23 @@ export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrdere
 
 export function toDefaultBehavior(behavior: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
   return behavior.apply(({ pathPattern, ...behavior }) => behavior)
+}
+
+export function uniqueOrigins(origins: aws.types.input.cloudfront.DistributionOrigin[]) {
+  return all(origins.map(origin => origin.originId))
+    .apply((originIds) => {
+      const alreadyUseOrigins = new Set<string>()
+      return originIds
+        .map((originId: string, index: number) => {
+          if (alreadyUseOrigins.has(originId)) {
+            return null
+          }
+
+          alreadyUseOrigins.add(originId)
+          return origins[index]
+        })
+        .filter(Boolean) as aws.types.input.cloudfront.DistributionOrigin[]
+    })
 }
 
 /*******************************************************
@@ -19,21 +36,21 @@ export function toDefaultBehavior(behavior: Output<aws.types.input.cloudfront.Di
  * that bucket as a target for a request
  */
 export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([ bucket ])
-  .apply(([bucket]) => all([ bucket.arn, bucket.websiteEndpoint ])
-  .apply(([originId, domainName]) => ({
-    originId,
-    domainName,
-    customOriginConfig: {
-      // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
-      // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
-      originProtocolPolicy: "http-only",
-      httpPort: 80,
-      httpsPort: 443,
-      originSslProtocols: ["TLSv1.2"],
-    },
-  })
-  ))
+  return all([bucket])
+    .apply(([bucket]) => all([bucket.arn, bucket.websiteEndpoint])
+      .apply(([originId, domainName]) => ({
+        originId,
+        domainName,
+        customOriginConfig: {
+          // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
+          // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
+          originProtocolPolicy: "http-only",
+          httpPort: 80,
+          httpsPort: 443,
+          originSslProtocols: ["TLSv1.2"],
+        },
+      })
+      ))
 }
 
 /**
@@ -55,7 +72,7 @@ export function staticContentBehavior(
   bucket: aws.s3.Bucket,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([bucket.arn ]).apply(([targetOriginId ]) => ({
+  return all([bucket.arn]).apply(([targetOriginId]) => ({
     ...options,
     compress: true,
     targetOriginId,
@@ -144,18 +161,18 @@ export function defaultStaticContentBehavior(
  * that load balancer as a target for a request
  */
 export function albOrigin(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([ alb.loadBalancer ])
-  .apply(([loadBalancer]) => all([loadBalancer.arn, loadBalancer.dnsName])
-  .apply(([originId, domainName]) => ({
-    originId,
-    domainName,
-    customOriginConfig: {
-      originProtocolPolicy: "https-only",
-      httpPort: 80,
-      httpsPort: 443,
-      originSslProtocols: ["TLSv1.2"],
-    }
-  })))
+  return all([alb.loadBalancer])
+    .apply(([loadBalancer]) => all([loadBalancer.arn, loadBalancer.dnsName])
+      .apply(([originId, domainName]) => ({
+        originId,
+        domainName,
+        customOriginConfig: {
+          originProtocolPolicy: "https-only",
+          httpPort: 80,
+          httpsPort: 443,
+          originSslProtocols: ["TLSv1.2"],
+        }
+      })))
 }
 
 /**
@@ -220,10 +237,10 @@ export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.Applicati
  * `https://docs.decentraland.co/legacy`each time  a user request for `https://example.decentraland.org/docs/eth/index.html`
  *  cloudfront will request `https://docs.decentraland.co/legacy/docs/eth/index.html`
  */
-export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  const endpoint = typeof target === 'string' ? target : target.origin;
-  return all([ endpoint ])
-  .apply(([endpoint]) => {
+export function httpOrigin(target: Input<HttpProxyOrigin>): Output<aws.types.input.cloudfront.DistributionOrigin> {
+  return all([target])
+    .apply(([target]) => {
+      const endpoint = typeof target === 'string' ? target : target.origin;
       const url = new URL(endpoint)
       const hostname = url.hostname
       const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
@@ -243,7 +260,7 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
       }
 
       return distribution
-  })
+    })
 }
 
 /**
@@ -265,15 +282,15 @@ export function httpOrigin(target: HttpProxyOrigin): Output<aws.types.input.clou
  */
 export function httpProxyBehavior(
   pathPattern: string,
-  target: HttpProxyOrigin,
+  target: Input<HttpProxyOrigin>,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  const endpoint = typeof target === 'string' ? target : target.origin;
-  const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
-  const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
-  const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
 
-  return all([endpoint]).apply(([endpoint]) => {
+  return all([target]).apply(([target]) => {
+    const endpoint = typeof target === 'string' ? target : target.origin;
+    const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
+    const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
+    const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
     const url = new URL(endpoint)
     const hostname = url.hostname
     const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname

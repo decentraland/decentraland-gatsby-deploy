@@ -15,7 +15,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, uniqueOrigins } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -27,7 +27,7 @@ import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
 import { createSecurityHeadersLambda } from "../aws/lambda";
-import { createHostOverridePageRule, createImmutableCachePageRule } from "../cloudflare/pageRule";
+import { createImmutableCachePageRule } from "../cloudflare/pageRule";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
@@ -292,24 +292,18 @@ export async function buildGatsby(config: GatsbyOptions) {
     );
   }
 
-  const proxyOrigins = new Set<string>()
   const contentProxy = config.contentProxy || {}
-  for (const pathPattern of Object.keys(contentProxy)) {
-    const originConfiguration = contentProxy[pathPattern]
-    const origin = typeof originConfiguration === 'string' ? originConfiguration : originConfiguration.origin
-    if (!proxyOrigins.has(origin)) {
-      proxyOrigins.add(origin)
-      serviceOrigins = [
-        ...serviceOrigins,
-        httpOrigin(originConfiguration)
-      ]
-    }
+  serviceOrigins = [
+    ...serviceOrigins,
+    ...Object.keys(contentProxy)
+      .map(pathPattern => httpOrigin(contentProxy[pathPattern]))
+  ]
 
-    serviceOrderedCacheBehaviors = [
-      ...serviceOrderedCacheBehaviors,
-      httpProxyBehavior(pathPattern, originConfiguration, staticLambdaOptions)
-    ]
-  }
+  serviceOrderedCacheBehaviors = [
+    ...serviceOrderedCacheBehaviors,
+    ...Object.keys(contentProxy)
+      .map(pathPattern => httpProxyBehavior(pathPattern, contentProxy[pathPattern], staticLambdaOptions)),
+  ]
 
   const contentRoutingRules = routingRules(config.contentRoutingRules, { hostname: serviceDomain, protocol: 'https' })
   // contentBucket is the S3 bucket that the website's contents will be stored in.
@@ -367,7 +361,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
   const cdn = all([
     defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
-    all(serviceOrigins),
+    all(serviceOrigins).apply(uniqueOrigins),
     all(serviceOrderedCacheBehaviors),
     logs.bucketDomainName
   ])

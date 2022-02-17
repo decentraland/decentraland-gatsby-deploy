@@ -1,4 +1,5 @@
 import type * as awsx from "@pulumi/awsx";
+import type * as pulumi from "@pulumi/pulumi";
 import { HttpProxyOrigin } from "../aws/types";
 
 export type GatsbyOptions = {
@@ -96,7 +97,7 @@ export type GatsbyOptions = {
    *    }
    * ```
    */
-  contentProxy?: Record<string, HttpProxyOrigin>
+  contentProxy?: Record<string, pulumi.Input<HttpProxyOrigin>>
 
   /**
    * define which tld (top level domain will be used)
