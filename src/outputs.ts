@@ -62,17 +62,18 @@ export function serviceImage(serviceImage: null | string | Output<string>) {
 
 function route53Record(record: aws.route53.Record | cloudflare.Record) {
   return all([
-    record.name,
-    record.type,
+    (record as aws.route53.Record).fqdn,
     (record as cloudflare.Record).hostname,
+    record.type,
     (record as aws.route53.Record).aliases,
-  ]).apply(([name, type, hostname, aliases]) => {
-    if (hostname) {
-      return `${name} ${type} ${hostname}`
+    (record as cloudflare.Record).value,
+  ]).apply(([fqdn, hostname, type, aliases, value]) => {
+    if (hostname && value) {
+      return `${hostname} ${type} ${value}`
     }
 
-    if (aliases && aliases.length > 0) {
-      return aliases.map(alias => `${name} ${type} ${alias.name}`).join('\n')
+    if (fqdn && aliases && aliases.length > 0) {
+      return aliases.map(alias => `${fqdn} ${type} ${alias.name}`).join('\n')
     }
 
     return null

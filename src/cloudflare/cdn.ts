@@ -16,10 +16,9 @@ export function isCloudflareDomain(domain: string) {
  */
 export function createRecordForCloudfrontDistribution(domain: string, distribution: Pick<aws.cloudfront.Distribution, "domainName">) {
   const [ serviceSubdomain, serviceTLD ] = getServiceNameAndTLD(domain)
-  const tld = serviceTLD.split('.').slice(-1).join('')
 
   return new cloudflare.Record(
-    `${serviceSubdomain || serviceTLD}-cname-${tld}`,
+    `${domain}-cname`,
     {
       type: 'CNAME',
       name: serviceSubdomain || serviceTLD,
@@ -36,10 +35,9 @@ export function createRecordForCloudfrontDistribution(domain: string, distributi
  */
 export function createRecordForLoadBalancer(domain: string, loadBalancer: Pick<aws.lb.LoadBalancer, "dnsName">) {
   const [ serviceSubdomain, serviceTLD ] = getServiceNameAndTLD(domain)
-  const tld = serviceTLD.split('.').slice(-1).join('')
 
   return new cloudflare.Record(
-    `${serviceSubdomain || serviceTLD}-cname-${tld}`,
+    `${domain}-cname`,
     {
       type: 'CNAME',
       name: serviceSubdomain || serviceTLD,
