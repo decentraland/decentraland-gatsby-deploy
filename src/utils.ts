@@ -1,3 +1,7 @@
+import { GatsbyOptions } from "./recepies/types";
+import { domain as envDomain, publicDomain, publicTLD, envTLD } from "dcl-ops-lib/domain";
+import { createServicSubdomain } from "./aws/route53";
+
 export function slug (value: string) {
   return value.replace(/\W/g, "-").replace(/^\-+/, '').replace(/\-+$/, '');
 }
@@ -16,8 +20,8 @@ export function getStackId () {
   return process.env.STACK_ID || 'default'
 }
 
-export function getServiceName (name: string) {
-  return slug(name)
+export function getServiceName (config: Pick<GatsbyOptions, 'name'>) {
+  return slug(config.name)
 }
 
 export function getServiceNameAndTLD(domain: string) {
@@ -32,13 +36,24 @@ export function getServiceNameAndTLD(domain: string) {
   return [serviceName || null, tld] as const
 }
 
-export function getScopedServiceName (name: string) {
+export function getScopedServiceName (config: Pick<GatsbyOptions, 'name'>) {
   const stackId = process.env.STACK_ID
   if (stackId) {
-    return `${slug(name)}-${slug(stackId)}`
+    return `${getServiceName(config)}-${slug(stackId)}`
   }
 
-  return slug(name)
+  return getServiceName(config)
+}
+
+export function getServiceSubdomain(config: Pick<GatsbyOptions, 'name' | 'usePublicTLD'>) {
+  const serviceName = getServiceName(config);
+  const decentralandDomain = config.usePublicTLD ? publicDomain : envDomain
+  return createServicSubdomain(serviceName, decentralandDomain)
+}
+
+export function getServiceDomains(config: Pick<GatsbyOptions, 'name' | 'usePublicTLD' | 'additionalDomains'>) {
+  const serviceDomain = getServiceSubdomain(config);
+  return [ serviceDomain, ...(config.additionalDomains || []) ].filter(Boolean) as string[]
 }
 
 export function debug<T extends (object | string | number | null | undefined)>(value: T): T {

@@ -1,24 +1,21 @@
 import { all, Output } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
+import * as cloudflare from "@pulumi/cloudflare";
 
-export function cloudfrontDistributionBehaviors(cdn: Output<aws.cloudfront.Distribution>) {
-  return { cloudfrontDistributionBehaviors: cdn
-    .apply(cdn => all([ cdn.defaultCacheBehavior, cdn.orderedCacheBehaviors])
-    .apply(([ defaultCacheBehavior, orderedCacheBehaviors ]) => {
-      const behaviors: Record<string, string> = {
-        '*': defaultCacheBehavior.targetOriginId
-      }
-
-      if (orderedCacheBehaviors) {
-        for (const behavior of orderedCacheBehaviors) {
-          behaviors[behavior.pathPattern] = behavior.targetOriginId
-        }
-      }
-
-      return behaviors
-    })
-  )}
+export function cloudfrontDistributionBehaviors(distribution: aws.cloudfront.Distribution) {
+  return {
+    distribution: all([distribution.defaultCacheBehavior, distribution.orderedCacheBehaviors])
+      .apply(([defaultCacheBehavior, orderedCacheBehaviors]) => ({
+          id: distribution.id,
+          domainName: distribution.domainName,
+          hostedZoneId: distribution.hostedZoneId,
+          cacheBehavior: [
+            ...(orderedCacheBehaviors || []).map(behavior => `${behavior.pathPattern} => ${behavior.targetOriginId}`),
+            `* => ${defaultCacheBehavior.targetOriginId}`
+          ]
+      }))
+  }
 }
 
 export function securityGroups(sg: Output<string>[] | string[] | null | undefined) {
@@ -63,27 +60,31 @@ export function serviceImage(serviceImage: null | string | Output<string>) {
   return { serviceImage }
 }
 
-function route53Record(record: aws.route53.Record) {
+function route53Record(record: aws.route53.Record | cloudflare.Record) {
   return all([
     record.name,
     record.type,
-    record.aliases,
-  ]).apply(([name, type, aliases]) => {
-    if (!aliases || aliases.length === 0) {
-      return null
+    (record as cloudflare.Record).hostname,
+    (record as aws.route53.Record).aliases,
+  ]).apply(([name, type, hostname, aliases]) => {
+    if (hostname) {
+      return `${name} ${type} ${hostname}`
     }
 
-    const alias = aliases[0]
-    return `${name} ${type} ${alias.name}`
+    if (aliases && aliases.length > 0) {
+      return aliases.map(alias => `${name} ${type} ${alias.name}`).join('\n')
+    }
+
+    return null
   })
 }
 
-export function domainRecord(record: Output<aws.route53.Record> | null | undefined) {
+export function domainRecord(record: aws.route53.Record | cloudflare.Record | null | undefined) {
   if (!record) {
     return {}
   }
 
-  const domainRecords = record.apply(record => route53Record(record))
+  const domainRecords = route53Record(record)
 
   if (!domainRecords) {
     return {}
@@ -92,9 +93,8 @@ export function domainRecord(record: Output<aws.route53.Record> | null | undefin
   return { domainRecords }
 }
 
-export function domainRecords(records: Output<aws.route53.Record>[]) {
+export function domainRecords(records: (aws.route53.Record | cloudflare.Record)[]) {
   return {
-    domainRecords: all(records)
-      .apply(records => all(records.map(route53Record)))
+    domainRecords: all(records.map(route53Record))
   }
 }
