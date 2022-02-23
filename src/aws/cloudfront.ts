@@ -97,7 +97,7 @@ export function staticSecurityHeadersPolicy(serviceName: string) {
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy */
       referrerPolicy: {
         override: true,
-        referrerPolicy: 'no-referrer'
+        referrerPolicy: 'strict-origin-when-cross-origin'
       },
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy */
