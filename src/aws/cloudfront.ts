@@ -34,6 +34,134 @@ export function uniqueOrigins(origins: aws.types.input.cloudfront.DistributionOr
 }
 
 /*******************************************************
+            SECURITY HEADER CONFIGURATION
+ ******************************************************/
+
+export function staticSecurityHeadersPolicy(serviceName: string) {
+  return new aws.cloudfront.ResponseHeadersPolicy(`${serviceName}-security-headers`, {
+    comment: "Security headers for static files",
+    /**
+     * CORS Header injection
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+     */
+    corsConfig: {
+      originOverride: false,
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials */
+      accessControlAllowCredentials: false,
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin */
+      accessControlAllowOrigins: {
+        items: ["*"]
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers */
+      accessControlAllowHeaders: {
+        items: ["Content-Type"]
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods */
+      accessControlAllowMethods: {
+        items: ["OPTIONS","HEAD","GET"]
+      },
+    },
+
+    securityHeadersConfig: {
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security */
+      strictTransportSecurity: {
+        override: true,
+        accessControlMaxAgeSec: 63072000,
+        includeSubdomains: true,
+        preload: true
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options */
+      contentTypeOptions: {
+        override: true
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options */
+      frameOptions: {
+        override: true,
+        frameOption: 'DENY'
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection */
+      xssProtection: {
+        override: true,
+        modeBlock: true,
+        protection: true,
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy */
+      referrerPolicy: {
+        override: true,
+        referrerPolicy: 'no-referrer, strict-origin-when-cross-origin'
+      },
+
+      /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy */
+      contentSecurityPolicy: {
+        override: true,
+        contentSecurityPolicy: [
+          `base-uri 'self'`,
+          `child-src https:`,
+          `connect-src https:`,
+          `default-src 'none'`,
+          `font-src https: data:`,
+          `form-action 'self'`,
+          `frame-ancestors 'none'`,
+          `frame-src https:`,
+          `img-src https: data:`,
+          `manifest-src 'self'`,
+          `media-src 'self'`,
+          `object-src 'none'`,
+          `prefetch-src https: data:`,
+          `style-src 'unsafe-inline' https: data:`,
+          `worker-src 'self'`,
+          `script-src ` + [
+            `'self'`,
+            `'unsafe-inline'`,
+            `'unsafe-eval'`,
+
+            // decentraland production
+            'https://decentraland.org',
+            'https://*.decentraland.org',
+
+            // developer tools
+            'https://ajax.cloudflare.com',
+            'https://cdn.rollbar.com',
+            'https://cdn.segment.com',
+
+            // captcha
+            'https://hcaptcha.com',
+            'https://newassets.hcaptcha.com',
+
+            // intercom
+            'https://widget.intercom.io',
+            'https://js.intercomcdn.com',
+
+            // analytics
+            'https://googleads.g.doubleclick.net',
+            'https://ssl.google-analytics.com',
+            'https://tagmanager.google.com',
+            'https://www.google-analytics.com',
+            'https://www.google-analytics.com',
+            'https://www.google.com',
+            'https://www.googleadservices.com',
+            'https://www.googletagmanager.com',
+          ].join(' ')
+        ].join('; ')
+      }
+    },
+
+    customHeadersConfig: {
+
+    }
+  })
+}
+
+/*******************************************************
       USING S3 BUCKETS IN A CLOUDFRONT DISTRIBUTION
  ******************************************************/
 

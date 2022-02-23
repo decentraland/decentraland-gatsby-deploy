@@ -13,7 +13,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, uniqueOrigins } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, uniqueOrigins, staticSecurityHeadersPolicy } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -21,7 +21,6 @@ import { getScopedServiceName, getServiceName, getServiceVersion, getServiceSubd
 import { GatsbyOptions } from "./types";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
-import { createSecurityHeadersLambda } from "../aws/lambda";
 import { buildContentBucket } from "./buildContentBucket";
 import { buildCloudfrontDistribution } from "./buildCloudfrontDistribution";
 import { routeToCloudfronDistribution } from "./routeDomains";
@@ -64,17 +63,9 @@ export async function buildGatsby(config: GatsbyOptions) {
     tags,
   })
 
-  const staticLambdaOptions: BehaviorOptions = {}
 
-  if (config.useSecurityHeaders) {
-    const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
-    staticLambdaOptions.lambdaFunctionAssociations = [
-      {
-        includeBody: false,
-        eventType: 'viewer-response',
-        lambdaArn: securityHeaders.qualifiedArn
-      }
-    ]
+  const staticLambdaOptions: BehaviorOptions = {
+    responseHeadersPolicyId: staticSecurityHeadersPolicy(serviceName).id
   }
 
   if (config.serviceImage && config.serviceSource) {
