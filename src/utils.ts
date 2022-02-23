@@ -1,4 +1,4 @@
-import { GatsbyOptions } from "./recepies/types";
+import { GatsbyOptions } from "./recepes/types";
 import { domain as envDomain, publicDomain } from "dcl-ops-lib/domain";
 import { createServicSubdomain } from "./aws/route53";
 
