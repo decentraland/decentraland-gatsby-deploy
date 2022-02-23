@@ -34,21 +34,20 @@ export function uniqueOrigins(origins: aws.types.input.cloudfront.DistributionOr
  * that bucket as a target for a request
  */
 export function bucketOrigin(bucket: Pick<aws.s3.Bucket, "arn" | "websiteEndpoint">): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([bucket])
-    .apply(([bucket]) => all([bucket.arn, bucket.websiteEndpoint])
-      .apply(([originId, domainName]) => ({
-        originId,
-        domainName,
-        customOriginConfig: {
-          // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
-          // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
-          originProtocolPolicy: "http-only",
-          httpPort: 80,
-          httpsPort: 443,
-          originSslProtocols: ["TLSv1.2"],
-        },
-      })
-      ))
+  return all([bucket.arn, bucket.websiteEndpoint])
+    .apply(([originId, domainName]) => ({
+      originId,
+      domainName,
+      customOriginConfig: {
+        // Amazon S3 doesn't support HTTPS connections when using an S3 bucket configured as a website endpoint.
+        // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-values-specify.html#DownloadDistValuesOriginProtocolPolicy
+        originProtocolPolicy: "http-only",
+        httpPort: 80,
+        httpsPort: 443,
+        originSslProtocols: ["TLSv1.2"],
+      },
+    })
+    )
 }
 
 /**
@@ -156,16 +155,16 @@ export function defaultStaticContentBehavior(
  */
 export function albOrigin(loadBalancer: Pick<aws.lb.LoadBalancer, "arn" | "dnsName">): Output<aws.types.input.cloudfront.DistributionOrigin> {
   return all([loadBalancer.arn, loadBalancer.dnsName])
-      .apply(([originId, domainName]) => ({
-        originId,
-        domainName,
-        customOriginConfig: {
-          originProtocolPolicy: "https-only",
-          httpPort: 80,
-          httpsPort: 443,
-          originSslProtocols: ["TLSv1.2"],
-        }
-      }))
+    .apply(([originId, domainName]) => ({
+      originId,
+      domainName,
+      customOriginConfig: {
+        originProtocolPolicy: "https-only",
+        httpPort: 80,
+        httpsPort: 443,
+        originSslProtocols: ["TLSv1.2"],
+      }
+    }))
 }
 
 /**
