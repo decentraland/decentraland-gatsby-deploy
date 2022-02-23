@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - 1.x.x
 
 jobs:
   release:
@@ -11,13 +12,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: node.js 12
+
+      - name: node.js 16
         uses: actions/setup-node@v1
         with:
-          node-version: 12
+          node-version: 16
           registry-url: https://registry.npmjs.org/
+
       - name: installing
         run: npm ci
+
       - name: testing
         run: npm test
       # TODO: add coverage service
