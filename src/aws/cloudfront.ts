@@ -1,7 +1,7 @@
 import { all, Output, Input } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 
-export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'>
+export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations' | 'functionAssociations'>
 
 export function toDefaultBehavior(behavior: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
   return behavior.apply(({ pathPattern, ...behavior }) => behavior)
