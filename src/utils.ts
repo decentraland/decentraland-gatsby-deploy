@@ -1,5 +1,5 @@
 import { GatsbyOptions } from "./recepies/types";
-import { domain as envDomain, publicDomain, publicTLD, envTLD } from "dcl-ops-lib/domain";
+import { domain as envDomain, publicDomain } from "dcl-ops-lib/domain";
 import { createServicSubdomain } from "./aws/route53";
 
 export function slug (value: string) {
