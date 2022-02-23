@@ -86,7 +86,9 @@ export function staticContentBehavior(
       cookies: { forward: "none" },
       queryString: true,
     },
+    minTtl: 120,
     defaultTtl: 120,
+    maxTtl: 31536000,
   }))
 }
 
@@ -125,7 +127,9 @@ export function immutableContentBehavior(
       cookies: { forward: "none" },
       queryString: true,
     },
+    minTtl: 86400,
     defaultTtl: 86400,
+    maxTtl: 31536000,
   }))
 }
 
@@ -200,7 +204,9 @@ export function serverBehavior(
       queryStringCacheKeys: [],
       cookies: { forward: "none" },
     },
-    defaultTtl: 0
+    minTtl: 0,
+    defaultTtl: 0,
+    maxTtl: 31536000,
   }))
 }
 
@@ -296,7 +302,9 @@ export function httpProxyBehavior(
         queryStringCacheKeys: [],
         cookies: { forward: "none" },
       },
+      minTtl: 0,
       defaultTtl: 0,
+      maxTtl: 31536000,
     }
   })
 }
