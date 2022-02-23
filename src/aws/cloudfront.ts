@@ -7,6 +7,9 @@ export type BehaviorOptions = Pick<
   | 'functionAssociations'
   | 'originRequestPolicyId'
   | 'responseHeadersPolicyId'
+  | 'minTtl'
+  | 'defaultTtl'
+  | 'maxTtl'
 >
 
 export function toDefaultBehavior(behavior: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
@@ -92,9 +95,9 @@ export function staticContentBehavior(
       cookies: { forward: "none" },
       queryString: true,
     },
-    minTtl: 120,
-    defaultTtl: 120,
-    maxTtl: 31536000,
+    minTtl: options.minTtl ?? 120,
+    defaultTtl: options.defaultTtl ?? 120,
+    maxTtl: options.maxTtl ?? 31536000,
   }))
 }
 
@@ -114,7 +117,7 @@ export function staticContentBehavior(
 export function immutableContentBehavior(
   pathPattern: string,
   bucket: Pick<aws.s3.Bucket, "arn">,
-  options: BehaviorOptions = {}
+  options: Omit<BehaviorOptions, "minTtl" | "defaultTtl" | "maxTtl"> = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
     ...options,
@@ -210,9 +213,9 @@ export function serverBehavior(
       queryStringCacheKeys: [],
       cookies: { forward: "none" },
     },
-    minTtl: 0,
-    defaultTtl: 0,
-    maxTtl: 31536000,
+    minTtl: options.minTtl ?? 0,
+    defaultTtl: options.defaultTtl ?? 0,
+    maxTtl: options.maxTtl ?? 31536000,
   }))
 }
 
