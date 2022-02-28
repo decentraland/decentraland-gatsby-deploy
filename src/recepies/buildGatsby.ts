@@ -3,9 +3,11 @@ import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
 import { env, domain as envDomain, publicDomain, publicTLD, envTLD } from "dcl-ops-lib/domain";
+import { getCertificateFor } from "dcl-ops-lib/certificate";
 import { makeSecurityGroupAccessibleFromSharedAlb } from "dcl-ops-lib/acceptAlb";
 import { makeSecurityGroupAccessibleFromBastion } from "dcl-ops-lib/acceptBastion";
 import { acceptDbSecurityGroupId } from "dcl-ops-lib/acceptDb";
+import { setRecord } from "dcl-ops-lib/cloudflare";
 import { makeSecurityGroupAccessTheInternet } from "dcl-ops-lib/accessTheInternet";
 import { getInternalServiceDiscoveryNamespaceId } from "dcl-ops-lib/supra";
 import { getAlb } from "dcl-ops-lib/alb";
@@ -17,28 +19,29 @@ import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, 
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
-import { getScopedServiceName, getServiceName, getServiceVersion, getServiceSubdomain, getStackId, getServiceDomains } from "../utils";
+import { getScopedServiceName, getServiceNameAndTLD, getServiceVersion, getStackId, slug } from "../utils";
 import { GatsbyOptions } from "./types";
+import * as outputs from "../outputs";
+import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53";
+import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
 import { createSecurityHeadersLambda } from "../aws/lambda";
-import { buildContentBucket } from "./buildContentBucket";
-import { buildCloudfrontDistribution } from "./buildCloudfrontDistribution";
-import { routeToCloudfronDistribution } from "./routeDomains";
+import { createImmutableCachePageRule } from "../cloudflare/pageRule";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
 export async function buildGatsby(config: GatsbyOptions) {
   console.log(`runngin gatsby recipe: `, JSON.stringify(config, null, 2))
-  const serviceName = getServiceName(config);
-  const serviceNameScoped = getScopedServiceName(config);
+  const serviceName = slug(config.name);
+  const serviceNameScoped = getScopedServiceName(config.name);
   const serviceVersion = getServiceVersion()
   const decentralandDomain = config.usePublicTLD ? publicDomain : envDomain
   const serviceTLD = config.usePublicTLD ? publicTLD : envTLD
-  const serviceDomain = getServiceSubdomain(config)
-  const domains = getServiceDomains(config)
-  const port = config.servicePort || 4000
+  const serviceDomain = createServicSubdomain(serviceName, decentralandDomain)
   const emailDomains = []
+  const domains = [ serviceDomain, ...(config.additionalDomains || []) ].filter(Boolean) as string[]
+  const port = config.servicePort || 4000
 
   // cloudfront mapping
   let serviceImage: null | string | Output<string> = null
@@ -47,10 +50,6 @@ export async function buildGatsby(config: GatsbyOptions) {
   let serviceOrderedCacheBehaviors: Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior>[] = []
   let serviceSecurityGroups: Output<string>[] = []
   let serviceLabel: Record<string, string> = {}
-  let serviceDiscovery: null | aws.servicediscovery.Service = null
-  let serviceTargetGroup: null | awsx.elasticloadbalancingv2.ApplicationTargetGroup = null
-  let cluster: null | awsx.ecs.Cluster = null
-  let fargate: null | awsx.ecs.FargateService = null
 
   const tags: Record<string, string> = {
     ServiceName: serviceName,
@@ -65,9 +64,8 @@ export async function buildGatsby(config: GatsbyOptions) {
   })
 
   const staticLambdaOptions: BehaviorOptions = {}
-
+  const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
   if (config.useSecurityHeaders) {
-    const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
     staticLambdaOptions.lambdaFunctionAssociations = [
       {
         includeBody: false,
@@ -140,7 +138,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
       // create target group
       const { alb, listener } = await getAlb();
-      serviceTargetGroup = alb.createTargetGroup(("tg-" + serviceName).slice(-32), {
+      const targetGroup = alb.createTargetGroup(("tg-" + serviceName).slice(-32), {
         vpc,
         port,
         protocol: "HTTP",
@@ -154,25 +152,25 @@ export async function buildGatsby(config: GatsbyOptions) {
       });
 
       // attach target group to service
-      portMappings.push(serviceTargetGroup)
+      portMappings.push(targetGroup)
 
       // attach target group to load balancer
       createHostForwardListenerRule(`${env}-ls-${serviceName}`, listener, {
         hosts: domains,
-        targetGroup: serviceTargetGroup.targetGroup,
+        targetGroup: targetGroup.targetGroup,
       })
 
       // add load balancer to origin list
       serviceOrigins = [
         ...serviceOrigins,
-        albOrigin(alb.loadBalancer)
+        albOrigin(alb)
       ]
 
       // map paths to load balancer
       const servicePaths = config.servicePaths || [ '/api/*' ]
       serviceOrderedCacheBehaviors = [
         ...serviceOrderedCacheBehaviors,
-        ...servicePaths.map(servicePath => serverBehavior(servicePath, alb.loadBalancer))
+        ...servicePaths.map(servicePath => serverBehavior(servicePath, alb))
       ]
 
       serviceLabel.ECS_PROMETHEUS_JOB_NAME = serviceName
@@ -231,7 +229,7 @@ export async function buildGatsby(config: GatsbyOptions) {
     }
 
     // create service discovery
-    serviceDiscovery = new aws.servicediscovery.Service(serviceName, {
+    const serviceDiscovery = new aws.servicediscovery.Service(serviceName, {
       name: serviceName,
       description: "service discovery for " + serviceName,
       dnsConfig: {
@@ -244,8 +242,8 @@ export async function buildGatsby(config: GatsbyOptions) {
     })
 
     // create Fargate service
-    cluster = await getCluster()
-    fargate = new awsx.ecs.FargateService(
+    const cluster = await getCluster()
+    new awsx.ecs.FargateService(
       serviceNameScoped,
       {
         cluster,
@@ -306,40 +304,166 @@ export async function buildGatsby(config: GatsbyOptions) {
       .map(pathPattern => httpProxyBehavior(pathPattern, contentProxy[pathPattern], staticLambdaOptions)),
   ]
 
-  const bucket = buildContentBucket(config)
+  const contentRoutingRules = routingRules(config.contentRoutingRules, { hostname: serviceDomain, protocol: 'https' })
+  // contentBucket is the S3 bucket that the website's contents will be stored in.
+  const contentBucket = new aws.s3.Bucket(`${serviceName}-website`, {
+    acl: "private",
+
+    tags: {
+      Name: serviceDomain
+    },
+
+    // Configure S3 to serve bucket contents as a website. This way S3 will automatically convert
+    // requests for "foo/" to "foo/index.html".
+    website: {
+      indexDocument: "index.html",
+      errorDocument: "404.html",
+      ...(contentRoutingRules.length > 0 && { routingRules: contentRoutingRules })
+    },
+
+    corsRules: [
+      {
+        allowedMethods: ["GET", "HEAD"],
+        exposeHeaders: ["ETag"],
+        allowedOrigins: ["*"],
+        maxAgeSeconds: 3600
+      }
+    ]
+  });
+
+  new aws.s3.BucketPolicy(`${serviceName}-website-bucket-policy`, {
+    bucket: contentBucket.bucket,
+    policy: contentBucket.bucket.apply((bucket): aws.iam.PolicyDocument => ({
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                `arn:aws:s3:::${bucket}/*`
+            ]
+        }
+      ]
+    }))
+  })
 
   // add bucket to the origin list
   serviceOrigins = [
     ...serviceOrigins,
-    bucketOrigin(bucket.contentBucket)
+    bucketOrigin(contentBucket)
   ]
 
   // logsBucket is an S3 bucket that will contain the CDN's request logs.
-  const cdn = buildCloudfrontDistribution({
-    ...config,
-    origins: all(serviceOrigins).apply(uniqueOrigins),
-    defaultCacheBehavior: defaultStaticContentBehavior(bucket.contentBucket, staticLambdaOptions),
-    orderedCacheBehaviors: all(serviceOrderedCacheBehaviors)
-  });
+  const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
+  const cdn = all([
+    defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
+    all(serviceOrigins).apply(uniqueOrigins),
+    all(serviceOrderedCacheBehaviors),
+    logs.bucketDomainName
+  ])
+  .apply(([
+    defaultContentBehavior,
+    serviceOrigins,
+    serviceOrderedCacheBehaviors,
+    logsBucketDomainName
+  ]) => new aws.cloudfront.Distribution(serviceName + "-cdn", {
+    // From this field, you can enable or disable the selected distribution.
+    enabled: true,
 
-  /**
-   * Create DNS records
-   */
-  const records = routeToCloudfronDistribution(domains, cdn.distribution)
+    // (Optional) Specify the maximum HTTP version that you want viewers to use to communicate with CloudFront.
+    // The default value for new web distributions is http1.1. For viewers and CloudFront to use HTTP/2,
+    // viewers must support TLS 1.2 or later, and must support server name identification (SNI).
+    // In general, configuring CloudFront to communicate with viewers using HTTP/2 reduces latency.
+    // You can improve performance by optimizing for HTTP/2. (values: http1.1 | http2)
+    httpVersion: 'http2',
+
+    // Alternate aliases the CloudFront distribution can be reached at, in addition to https://xxxx.cloudfront.net.
+    // Required if you want to access the distribution via config.targetDomain as well.
+    aliases: domains,
+
+    // We only specify one origin for this distribution, the S3 content bucket.
+    defaultRootObject: "index.html",
+    origins: [ ...serviceOrigins ],
+
+    // A CloudFront distribution can configure different cache behaviors based on the request path.
+    // Here we just specify a single, default cache behavior which is just read-only requests to S3.
+    defaultCacheBehavior: defaultContentBehavior,
+    orderedCacheBehaviors: [ ...serviceOrderedCacheBehaviors ],
+
+    // "All" is the most broad distribution, and also the most expensive.
+    // "100" is the least broad, and also the least expensive.
+    // (values: PriceClass_100 | PriceClass_200 | PriceClass_All)
+    priceClass: "PriceClass_100",
+
+    // You can customize error responses. When CloudFront recieves an error from the origin (e.g. S3 or some other
+    // web service) it can return a different error code, and return the response for a different resource.
+    customErrorResponses: [],
+
+    // A complex type that identifies ways in which you want to restrict distribution of your content.
+    restrictions: {
+      geoRestriction: {
+        restrictionType: "none",
+      },
+    },
+
+    // A complex type that determines the distribution’s SSL/TLS configuration for communicating with viewers.
+    viewerCertificate: {
+      acmCertificateArn: getCertificateFor(serviceDomain),
+      sslSupportMethod: "sni-only",
+    },
+
+    // A complex type that controls whether access logs are written for the distribution.
+    loggingConfig: {
+      bucket: logsBucketDomainName,
+      includeCookies: false,
+      prefix: `${serviceDomain}/`,
+    },
+  }));
+
+  const records = domains.map(domain => createRecordForCloudfront(domain, cdn))
+  for (const domain of domains) {
+    if (
+      domain.endsWith('.org') ||
+      domain.endsWith('.today') ||
+      domain.endsWith('.zone') ||
+      domain.endsWith('.systems') ||
+      domain.endsWith('.services')
+    ) {
+      const [ subdomain, tld ] = getServiceNameAndTLD(domain)
+      await setRecord({
+        proxied: true,
+        type: 'CNAME',
+        recordName: subdomain || tld,
+        value: cdn.domainName
+      })
+
+      if (config.contentImmutableCache && config.contentImmutableCache.length > 0) {
+        for (const path of config.contentImmutableCache) {
+          const target = domain + path
+          createImmutableCachePageRule(slug(serviceName), target)
+        }
+      }
+    }
+  }
 
   // Export properties from this stack. This prints them at the end of `pulumi up` and
   // makes them easier to access from the pulumi.com.
-  return {
-    ...bucket,
-    ...cdn,
-    records,
-    cluster,
-    fargate,
-    serviceImage,
-    serviceDiscovery,
-    serviceTargetGroup,
-    serviceLabel,
-    tags,
-    environment,
+  const output: Record<string, any> = {
+    bucketName: contentBucket.bucket,
+    logsBucket: logs.bucket,
+    cloudfrontDistribution: cdn.id,
+
+    // debbuggin information
+    ...outputs.cloudfrontDistributionBehaviors(cdn),
+    ...outputs.securityGroups(serviceSecurityGroups),
+    ...outputs.serviceImage(serviceImage),
+    ...outputs.environmentVariables(environment),
+    ...outputs.emailDomains(emailDomains),
+    ...outputs.domainRecords(records),
   }
+
+  return output
 }

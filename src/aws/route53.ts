@@ -1,54 +1,47 @@
 import * as aws from '@pulumi/aws'
-import { getServiceNameAndTLD } from '../utils'
+import { all, Output } from '@pulumi/pulumi'
 
 export function createServicSubdomain(serviceName: string, tldDomain: string) {
   return `${serviceName}.${tldDomain}`
 }
 
-/**
- * Create an A record on AWS Route53 pointing to a `aws.cloudfront.Distribution`
- */
-export function createRecordForCloudfrontDistribution(domain: string, distribution: Pick<aws.cloudfront.Distribution, "domainName" | "hostedZoneId">) {
-  const [ serviceSubdomain, serviceTLD ] = getServiceNameAndTLD(domain)
-
-  const hostedZoneId = aws.route53
-  .getZone({ name: serviceTLD }, { async: true })
-  .then((zone: { zoneId: string }) => zone.zoneId)
-
-  return new aws.route53.Record(domain, {
-    name: serviceSubdomain || '',
-    zoneId: hostedZoneId,
-    type: "A",
-    aliases: [
-      {
-        name: distribution.domainName,
-        zoneId: distribution.hostedZoneId,
-        evaluateTargetHealth: false,
-      },
-    ],
-  })
+export function recovereServiceSubsomain(domain: string) {
+  const parts = domain.split('.')
+  if (parts.length >= 3) {
+    return [
+      parts.slice(0, -2).join('.'),
+      parts.slice(-2).join('.'),
+    ] as const
+  } else if (parts.length === 2) {
+    return [ null, parts.join('.') ] as const
+  } else {
+    throw new Error(`Invalid domain: "${domain}"`)
+  }
 }
 
 /**
- * Create an A record on AWS Route53 pointing to a `aws.lb.LoadBalancer`
+ *
+ * @param serviceName
+ * @param tldDomain
+ * @param cdn
  */
-export function createRecordForLoadBalancer(domain: string, loadBalancer: Pick<aws.lb.LoadBalancer, "dnsName" | "zoneId">) {
-  const [ serviceSubdomain, serviceTLD ] = getServiceNameAndTLD(domain)
+export function createRecordForCloudfront(serviceDomain: string, cdn: aws.cloudfront.Distribution | Output<aws.cloudfront.Distribution>) {
+  const [ serviceName, tld ] = recovereServiceSubsomain(serviceDomain)
 
   const hostedZoneId = aws.route53
-  .getZone({ name: serviceTLD }, { async: true })
-  .then((zone: { zoneId: string }) => zone.zoneId)
+    .getZone({ name: tld }, { async: true })
+    .then((zone: { zoneId: string }) => zone.zoneId)
 
-  return new aws.route53.Record(domain, {
-    name: serviceSubdomain || '',
+  return all([ cdn ]).apply(([cdn]) => new aws.route53.Record(serviceDomain, {
+    name: serviceName || '',
     zoneId: hostedZoneId,
     type: "A",
     aliases: [
       {
-        name: loadBalancer.dnsName,
-        zoneId: loadBalancer.zoneId,
+        name: cdn.domainName,
+        zoneId: cdn.hostedZoneId,
         evaluateTargetHealth: false,
       },
     ],
-  })
+  }))
 }

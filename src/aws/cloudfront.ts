@@ -1,5 +1,7 @@
 import { all, Output, Input } from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
+import * as awsx from "@pulumi/awsx";
+import { HttpProxyOrigin } from "./types";
 
 export type BehaviorOptions = Pick<aws.types.input.cloudfront.DistributionOrderedCacheBehavior, 'lambdaFunctionAssociations'>
 
@@ -33,7 +35,7 @@ export function uniqueOrigins(origins: aws.types.input.cloudfront.DistributionOr
  * if is listed en the `origins` prop of a `aws.cloudfront.Distribution` allows you to use
  * that bucket as a target for a request
  */
-export function bucketOrigin(bucket: Pick<aws.s3.Bucket, "arn" | "websiteEndpoint">): Output<aws.types.input.cloudfront.DistributionOrigin> {
+export function bucketOrigin(bucket: aws.s3.Bucket): Output<aws.types.input.cloudfront.DistributionOrigin> {
   return all([bucket])
     .apply(([bucket]) => all([bucket.arn, bucket.websiteEndpoint])
       .apply(([originId, domainName]) => ({
@@ -67,7 +69,7 @@ export function bucketOrigin(bucket: Pick<aws.s3.Bucket, "arn" | "websiteEndpoin
  */
 export function staticContentBehavior(
   pathPattern: string,
-  bucket: Pick<aws.s3.Bucket, "arn">,
+  bucket: aws.s3.Bucket,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
@@ -87,7 +89,9 @@ export function staticContentBehavior(
       cookies: { forward: "none" },
       queryString: true,
     },
-    defaultTtl: 120,
+    minTtl: 0,
+    defaultTtl: 600,
+    maxTtl: 600,
   }))
 }
 
@@ -106,7 +110,7 @@ export function staticContentBehavior(
  */
 export function immutableContentBehavior(
   pathPattern: string,
-  bucket: Pick<aws.s3.Bucket, "arn">,
+  bucket: aws.s3.Bucket,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
   return all([bucket.arn]).apply(([targetOriginId]) => ({
@@ -126,7 +130,9 @@ export function immutableContentBehavior(
       cookies: { forward: "none" },
       queryString: true,
     },
+    minTtl: 1,
     defaultTtl: 86400,
+    maxTtl: 31536000,
   }))
 }
 
@@ -139,7 +145,7 @@ export function immutableContentBehavior(
  * > list it in the `origins` prop, please check the `bucketOrigin` function
  */
 export function defaultStaticContentBehavior(
-  bucket: Pick<aws.s3.Bucket, "arn">,
+  bucket: aws.s3.Bucket,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
   return toDefaultBehavior(staticContentBehavior('/*', bucket, options))
@@ -150,12 +156,13 @@ export function defaultStaticContentBehavior(
  *******************************************************************/
 
 /**
- * Crates a `aws.types.input.cloudfront.DistributionOrigin` for a `aws.lb.LoadBalancer`
+ * Crates a `aws.types.input.cloudfront.DistributionOrigin` for a `awsx.elasticloadbalancingv2.ApplicationLoadBalancer`
  * if is listed en the `origins` prop of a `aws.cloudfront.Distribution` allows you to use
  * that load balancer as a target for a request
  */
-export function albOrigin(loadBalancer: Pick<aws.lb.LoadBalancer, "arn" | "dnsName">): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([loadBalancer.arn, loadBalancer.dnsName])
+export function albOrigin(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionOrigin> {
+  return all([alb.loadBalancer])
+    .apply(([loadBalancer]) => all([loadBalancer.arn, loadBalancer.dnsName])
       .apply(([originId, domainName]) => ({
         originId,
         domainName,
@@ -165,11 +172,11 @@ export function albOrigin(loadBalancer: Pick<aws.lb.LoadBalancer, "arn" | "dnsNa
           httpsPort: 443,
           originSslProtocols: ["TLSv1.2"],
         }
-      }))
+      })))
 }
 
 /**
- * Creates a `aws.types.input.cloudfront.DistributionOrderedCacheBehavior` using a `aws.lb.LoadBalancer`
+ * Creates a `aws.types.input.cloudfront.DistributionOrderedCacheBehavior` using a `awsx.elasticloadbalancingv2.ApplicationLoadBalancer`
  *  and a `pathPatther`, If is listed in the `orderedCacheBehaviors` prop of a `aws.cloudfront.Distribution` routes all the request
  * that match `pathPattern` to the same path in `alb` and prevent cloudfonrt to cache the result
  *
@@ -184,10 +191,10 @@ export function albOrigin(loadBalancer: Pick<aws.lb.LoadBalancer, "arn" | "dnsNa
  */
 export function serverBehavior(
   pathPattern: string,
-  loadBalancer: Pick<aws.lb.LoadBalancer, "arn">,
+  alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([loadBalancer.arn]).apply(([targetOriginId]) => ({
+  return all([alb.loadBalancer.arn]).apply(([targetOriginId]) => ({
     ...options,
     compress: true,
     pathPattern,
@@ -201,20 +208,22 @@ export function serverBehavior(
       queryStringCacheKeys: [],
       cookies: { forward: "none" },
     },
-    defaultTtl: 0
+    minTtl: 0,
+    defaultTtl: 0,
+    maxTtl: 0
   }))
 }
 
 /**
- * Creates a `aws.types.input.cloudfront.DistributionDefaultCacheBehavior` using a `aws.lb.LoadBalancer`.
+ * Creates a `aws.types.input.cloudfront.DistributionDefaultCacheBehavior` using a `awsx.elasticloadbalancingv2.ApplicationLoadBalancer`.
  * if is in the `defaultCacheBehavior` prop of a `aws.cloudfront.Distribution` routes all remaining request
  * to the same path in `alb` and prevent cloufront to cache the result
  *
  * > !IMPORTANT in order to use a bucket as the `defaultCacheBehavior` prop you need to
  * > list it in the `origins` prop, please check the `albOrigin` function
  */
-export function defaultServerBehavior(loadBalancer: Pick<aws.lb.LoadBalancer, "arn">): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
-  return toDefaultBehavior(serverBehavior('/*', loadBalancer))
+export function defaultServerBehavior(alb: awsx.elasticloadbalancingv2.ApplicationLoadBalancer): Output<aws.types.input.cloudfront.DistributionDefaultCacheBehavior> {
+  return toDefaultBehavior(serverBehavior('/*', alb))
 }
 
 /******************************************************************
@@ -228,9 +237,10 @@ export function defaultServerBehavior(loadBalancer: Pick<aws.lb.LoadBalancer, "a
  * `https://docs.decentraland.co/legacy`each time  a user request for `https://example.decentraland.org/docs/eth/index.html`
  *  cloudfront will request `https://docs.decentraland.co/legacy/docs/eth/index.html`
  */
-export function httpOrigin(endpoint: Input<string>): Output<aws.types.input.cloudfront.DistributionOrigin> {
-  return all([endpoint])
-    .apply(([endpoint]) => {
+export function httpOrigin(target: Input<HttpProxyOrigin>): Output<aws.types.input.cloudfront.DistributionOrigin> {
+  return all([target])
+    .apply(([target]) => {
+      const endpoint = typeof target === 'string' ? target : target.origin;
       const url = new URL(endpoint)
       const hostname = url.hostname
       const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
@@ -272,10 +282,15 @@ export function httpOrigin(endpoint: Input<string>): Output<aws.types.input.clou
  */
 export function httpProxyBehavior(
   pathPattern: string,
-  endpoint: Input<string>,
+  target: Input<HttpProxyOrigin>,
   options: BehaviorOptions = {}
 ): Output<aws.types.input.cloudfront.DistributionOrderedCacheBehavior> {
-  return all([endpoint]).apply(([endpoint]) => {
+
+  return all([target]).apply(([target]) => {
+    const endpoint = typeof target === 'string' ? target : target.origin;
+    const minTtl = typeof target === 'string' ? 0 : target.minTtl || 0;
+    const defaultTtl = typeof target === 'string' ? 0 : target.defaultTtl || 0;
+    const maxTtl = typeof target === 'string' ? 0 : target.maxTtl || 0;
     const url = new URL(endpoint)
     const hostname = url.hostname
     const pathname = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
@@ -297,7 +312,9 @@ export function httpProxyBehavior(
         queryStringCacheKeys: [],
         cookies: { forward: "none" },
       },
-      defaultTtl: 0,
+      minTtl,
+      defaultTtl,
+      maxTtl
     }
   })
 }

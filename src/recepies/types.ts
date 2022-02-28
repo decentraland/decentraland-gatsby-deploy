@@ -1,5 +1,6 @@
 import type * as awsx from "@pulumi/awsx";
 import type * as pulumi from "@pulumi/pulumi";
+import { HttpProxyOrigin } from "../aws/types";
 
 export type GatsbyOptions = {
   /**
@@ -14,6 +15,12 @@ export type GatsbyOptions = {
    *
    */
   team?: "dapps" | "platform" | "data" | "marketing" | "infra",
+
+  /**
+   * TODO: implemente
+   * Path of the content will by upload to the content bucket
+   */
+  contentSource?: string;
 
   /**
    * Map of redirections, allows you to define file refirections and prefix redirections
@@ -49,6 +56,22 @@ export type GatsbyOptions = {
   contentRoutingRules?: Record<string, string>
 
   /**
+   * Add page rule to these paths that chache everything for a year
+   * @deprecated use cdn-uploader instead: https://github.com/decentraland/cdn-uploader
+   *
+   * @example the use of a wildcard is allowd
+   *
+   * ```typescript
+   *    [
+   *      `/pdf/withpaper.pdf`,
+   *      `/static/*`
+   *      ``
+   *    ]
+   * ```
+   */
+  contentImmutableCache?: string[]
+
+  /**
    * Map of proxies to other url, allows you to use others domains as part of your content
    *
    * @example proxy all request from `/blog/*` to `https://blog.decentraland.io/blog/*`
@@ -75,7 +98,16 @@ export type GatsbyOptions = {
    *    }
    * ```
    */
-  contentProxy?: Record<string, pulumi.Input<string>>
+  contentProxy?: Record<string, pulumi.Input<HttpProxyOrigin>>
+
+  /**
+   * define which tld (top level domain will be used)
+   * - if `true` will use `.org`, `.today`, `.zone` and `.system`
+   * - if `false` will use `.co`, `.net`, `.io` and `.system`
+   *
+   * @default false
+   */
+  usePublicTLD?: boolean
 
   /**
    * define a list of additional domains accepted as alias in cloufront and alb
@@ -162,15 +194,6 @@ export type GatsbyOptions = {
    * Adsitional environment variables exposed into the service
    */
   serviceEnvironment?: awsx.ecs.KeyValuePair[]
-
-  /**
-   * define which tld (top level domain will be used)
-   * - if `true` will use `.org`, `.today`, `.zone` and `.system`
-   * - if `false` will use `.co`, `.net`, `.io` and `.system`
-   *
-   * @default false
-   */
-  usePublicTLD?: boolean
 
   /**
    * (only if `serviceImage` or `serviceSource` is defined)
