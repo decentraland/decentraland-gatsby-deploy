@@ -32,6 +32,7 @@
       {
         "name": "master"
       },
+      { "name": "1.x.x", "range": "1.x.x", "channel": "1.x.x"},
       {
         "name": "{feat,fix}/*",
         "channel": "alpha",
