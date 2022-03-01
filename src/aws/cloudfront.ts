@@ -415,7 +415,7 @@ export function staticSecurityHeadersPolicy(serviceName: string, options: Securi
 
     customHeadersConfig: {
       items: [
-        options.permissonPolicy ?? {
+        options.permissonPolicy && {
           override: false,
           header: 'Permissions-Policy',
           value: toPermissionPolicy(options.permissonPolicy)
