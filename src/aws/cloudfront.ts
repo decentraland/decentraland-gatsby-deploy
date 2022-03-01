@@ -35,9 +35,46 @@ export function uniqueOrigins(origins: aws.types.input.cloudfront.DistributionOr
 
 /*******************************************************
             SECURITY HEADER CONFIGURATION
- ******************************************************/
+*******************************************************/
 
-export function staticSecurityHeadersPolicy(serviceName: string) {
+export type SecurityHeadersOptions = {
+  accessControlAllowCredentials?: boolean
+  accessControlAllowOrigins?: string[],
+  accessControlAllowHeaders?: string[],
+  accessControlAllowMethods?: ("OPTIONS" | "HEAD" | "GET" | "POST" | "PUT" | "PATCH" | "DELETE")[],
+  contentSecurityPolicyScript?: string[],
+}
+
+export const ContentSecurityPolicyScript = {
+  DeveloperTools: [
+    'https://cdn.segment.com',
+    'https://cdn.rollbar.com',
+    'https://ajax.cloudflare.com',
+  ],
+
+  HCaptcha: [
+    'https://hcaptcha.com',
+    'https://newassets.hcaptcha.com',
+  ],
+
+  Intercom: [
+    'https://widget.intercom.io',
+    'https://js.intercomcdn.com',
+  ],
+
+  GoogleAnalytics: [
+    'https://googleads.g.doubleclick.net',
+    'https://ssl.google-analytics.com',
+    'https://tagmanager.google.com',
+    'https://www.google-analytics.com',
+    'https://www.google-analytics.com',
+    'https://www.google.com',
+    'https://www.googleadservices.com',
+    'https://www.googletagmanager.com',
+  ],
+}
+
+export function staticSecurityHeadersPolicy(serviceName: string, options: SecurityHeadersOptions = {}) {
   return new aws.cloudfront.ResponseHeadersPolicy(`${serviceName}-security-headers`, {
     comment: "Security headers for static files",
     /**
@@ -48,21 +85,21 @@ export function staticSecurityHeadersPolicy(serviceName: string) {
       originOverride: false,
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials */
-      accessControlAllowCredentials: false,
+      accessControlAllowCredentials: options.accessControlAllowCredentials ?? false,
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin */
       accessControlAllowOrigins: {
-        items: ["*"]
+        items: options.accessControlAllowOrigins ?? ["*"]
       },
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers */
       accessControlAllowHeaders: {
-        items: ["Content-Type"]
+        items: options.accessControlAllowHeaders ?? ["Content-Type"]
       },
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods */
       accessControlAllowMethods: {
-        items: ["OPTIONS","HEAD","GET"]
+        items: options.accessControlAllowMethods ?? ["OPTIONS","HEAD","GET"]
       },
     },
 
@@ -128,35 +165,22 @@ export function staticSecurityHeadersPolicy(serviceName: string) {
             'https://decentraland.org',
             'https://*.decentraland.org',
 
-            // developer tools
-            'https://ajax.cloudflare.com',
-            'https://cdn.rollbar.com',
-            'https://cdn.segment.com',
-
-            // captcha
-            'https://hcaptcha.com',
-            'https://newassets.hcaptcha.com',
-
-            // intercom
-            'https://widget.intercom.io',
-            'https://js.intercomcdn.com',
-
-            // analytics
-            'https://googleads.g.doubleclick.net',
-            'https://ssl.google-analytics.com',
-            'https://tagmanager.google.com',
-            'https://www.google-analytics.com',
-            'https://www.google-analytics.com',
-            'https://www.google.com',
-            'https://www.googleadservices.com',
-            'https://www.googletagmanager.com',
+            ...(options.contentSecurityPolicyScript || []),
+            ...ContentSecurityPolicyScript.DeveloperTools,
+            ...ContentSecurityPolicyScript.GoogleAnalytics,
           ].join(' ')
         ].join('; ')
       }
     },
 
     customHeadersConfig: {
-
+      items: [
+        {
+          override: false,
+          header: 'Permissions-Policy',
+          value: "'self'"
+        }
+      ]
     }
   })
 }
