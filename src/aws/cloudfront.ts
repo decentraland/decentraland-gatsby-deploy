@@ -134,7 +134,7 @@ export type PermissionPolicyOptions = {
   /** Read from the device clipboard via the Clipboard API */
   "clipboard-read": boolean | '*' | string[]
 
-    /** Write to the device clipboard via the Clipboard API */
+  /** Write to the device clipboard via the Clipboard API */
   "clipboard-write": boolean | '*' | string[]
 
   /** Determines whether any content in that document is allowed to access getGamepads(). If disabled in any document, no content in the document will be allowed to use getGamepads(), nor will the "gamepadconnected" and "gamepaddisconnected" events fire. */
@@ -147,7 +147,7 @@ export type PermissionPolicyOptions = {
   /** Click Through Attribution Reporting. To enable this, use the Chrome command line flag --enable-blink-features=ConversionMeasurement */
   "conversion-measurement": boolean | '*' | string[]
 
-    /** Helps control the use of automated focus in a main frame or <iframe>. The proposed feature provides a means for developers to block the use of automatic focus in nested contents. */
+  /** Helps control the use of automated focus in a main frame or <iframe>. The proposed feature provides a means for developers to block the use of automatic focus in nested contents. */
   "focus-without-user-activation": boolean | '*' | string[]
 
   /** Allow a web page to communicate with HID devices (Human Interface Device) */
@@ -174,6 +174,7 @@ export type PermissionPolicyOptions = {
   /** Vertical scroll policy is a feature introduced to assist websites in blocking certain embedded contents from interfering with vertical scrolling. Stopping a user from vertically scrolling the page might be a frustrating experience. */
   "vertical-scroll": boolean | '*' | string[]
 }
+
 
 export const ContentSecurityPolicyScript = {
   DeveloperTools: [
@@ -218,6 +219,96 @@ function toPermissionPolicy(options: Partial<PermissionPolicyOptions> = {}): str
         return key + '=(' + value.map(domain => `"${domain}"`).join(' ') + ')'
     }
   }).join(', ')
+}
+
+export const PermissionPolicies = {
+  Self: {
+    "accelerometer": true,
+    "ambient-light-sensor": true,
+    "autoplay": true,
+    "battery": true,
+    "camera": true,
+    "cross-origin-isolated": true,
+    "display-capture": true,
+    "document-domain": true,
+    "encrypted-media": true,
+    "execution-while-not-rendered": true,
+    "execution-while-out-of-viewport": true,
+    "fullscreen": true,
+    "geolocation": true,
+    "gyroscope": true,
+    "keyboard-map": true,
+    "magnetometer": true,
+    "microphone": true,
+    "midi": true,
+    "navigation-override": true,
+    "payment": true,
+    "picture-in-picture": true,
+    "publickey-credentials-get": true,
+    "screen-wake-lock": true,
+    "sync-xhr": true,
+    "usb": true,
+    "web-share": true,
+    "xr-spatial-tracking": true,
+    "clipboard-read": true,
+    "clipboard-write": true,
+    "gamepad": true,
+    "speaker-selection": true,
+    "conversion-measurement": true,
+    "focus-without-user-activation": true,
+    "hid": true,
+    "idle-detection": true,
+    "interest-cohort": true,
+    "serial": true,
+    "sync-script": true,
+    "trust-token-redemption": true,
+    "window-placement": true,
+    "vertical-scroll": true,
+  } as PermissionPolicyOptions,
+
+  Restricted: {
+    "accelerometer": false,
+    "ambient-light-sensor": false,
+    "autoplay": false,
+    "battery": false,
+    "camera": false,
+    "cross-origin-isolated": false,
+    "display-capture": false,
+    "document-domain": false,
+    "encrypted-media": false,
+    "execution-while-not-rendered": false,
+    "execution-while-out-of-viewport": false,
+    "fullscreen": false,
+    "geolocation": false,
+    "gyroscope": false,
+    "keyboard-map": false,
+    "magnetometer": false,
+    "microphone": false,
+    "midi": false,
+    "navigation-override": false,
+    "payment": false,
+    "picture-in-picture": false,
+    "publickey-credentials-get": false,
+    "screen-wake-lock": false,
+    "sync-xhr": false,
+    "usb": false,
+    "web-share": false,
+    "xr-spatial-tracking": false,
+    "clipboard-read": false,
+    "clipboard-write": false,
+    "gamepad": false,
+    "speaker-selection": false,
+    "conversion-measurement": false,
+    "focus-without-user-activation": false,
+    "hid": false,
+    "idle-detection": false,
+    "interest-cohort": false,
+    "serial": false,
+    "sync-script": false,
+    "trust-token-redemption": false,
+    "window-placement": false,
+    "vertical-scroll": false,
+  } as PermissionPolicyOptions,
 }
 
 /**
