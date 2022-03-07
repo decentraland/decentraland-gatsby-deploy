@@ -3,7 +3,8 @@ const { readFileSync, writeFileSync, statSync } = require('fs')
 const { execSync } = require('child_process')
 const { parse } = require('yaml')
 const { resolve, relative, dirname } = require('path')
-const { red, grey, green, cyan } = require('colors/safe')
+const { grey, green, cyan } = require('colors/safe')
+const { exitWithError } = require('./utils')
 const [ _bin, _file, cwd, target, stack ] = process.argv
 const isGithub = !!process.env.GITHUB_ENV
 
@@ -190,11 +191,4 @@ Promise.resolve()
     writeFileSync(output_file, output.join('\n'))
     process.exit(0)
   })
-  .catch((err) => {
-    const newLinePosition = err.stack.indexOf(`\n`)
-    console.log()
-    console.log(red(err.stack.slice(0, newLinePosition)))
-    console.log(grey(err.stack.slice(newLinePosition + 1)))
-    console.log()
-    process.exit(1)
-  })
+  .catch(exitWithError)

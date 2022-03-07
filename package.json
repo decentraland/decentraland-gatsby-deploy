@@ -3,9 +3,10 @@
   "version": "0.0.0-development",
   "description": "Common Gastby deploy tools",
   "bin": {
+    "download-release": "./bin/download-release.js",
+    "setup-bucket": "./bin/setup-bucket.sh",
     "setup-environment": "./bin/setup-environment.sh",
-    "setup-stack": "./bin/setup-stack.sh",
-    "setup-bucket": "./bin/setup-bucket.sh"
+    "setup-stack": "./bin/setup-stack.sh"
   },
   "scripts": {
     "test": "jest",
@@ -56,8 +57,10 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
+    "@octokit/rest": "^18.12.0",
     "colors": "^1.4.0",
     "dcl-ops-lib": "^5.20.0",
-    "yaml": "^1.10.2"
+    "yaml": "^1.10.2",
+    "yargs": "^17.3.1"
   }
 }
