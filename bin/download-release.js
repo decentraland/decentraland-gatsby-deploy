@@ -25,7 +25,7 @@ const argv = yargs(hideBin(process.argv))
     description: 'Release name',
     default: 'latest',
   })
-  .option('pre-release', {
+  .option('--allow-pre-release', {
     type: 'boolean',
     description: 'Download the latest pre-release'
   })
@@ -46,7 +46,7 @@ const octokit = new Octokit({
 
 Promise.resolve()
   .then(async () => {
-    if (argv['pre-release']) {
+    if (argv['allow-pre-release']) {
       const result = await octokit.repos.listReleases({
         owner: argv.owner,
         repo: argv.repo,
@@ -88,14 +88,14 @@ Promise.resolve()
     }
 
     const stream = await requestStream(url, { headers })
-    return [ asset, stream ]
+    return [ release, asset, stream ]
   })
-  .then(async ([asset, stream]) => new Promise((resolve, reject) => {
+  .then(async ([release, asset, stream]) => new Promise((resolve, reject) => {
     let size = 0
     const progressSize = 50
     const cwd = process.cwd()
     const filepath = resolvePath(cwd, argv.output || asset.name)
-    console.log(`downloading`, yellow(asset.url), 'to', yellow(relativePath(cwd, filepath)))
+    console.log(`downloading`, yellow(`${argv.owner}/${argv.repo} ${release.name} (${asset.name})`), 'to', yellow(relativePath(cwd, filepath)))
 
     const file = createWriteStream(filepath)
     const contentLength = Number(stream.headers['content-length'])
