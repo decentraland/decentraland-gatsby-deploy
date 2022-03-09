@@ -31,12 +31,12 @@ const argv = yargs(hideBin(process.argv))
   })
   .option('ext', {
     type: 'string',
-    description: 'Download release with this extension'
+    description: 'download the release asset with this extension'
   })
   .option('output', {
     alias: 'o',
     type: 'string',
-    description: 'Output file'
+    description: 'output file, by default use the same name of the release asset'
   })
   .argv
 
@@ -44,24 +44,79 @@ const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN || undefined
 })
 
-Promise.resolve()
-  .then(async () => {
-    if (argv['allow-pre-release']) {
-      const result = await octokit.repos.listReleases({
-        owner: argv.owner,
-        repo: argv.repo,
-        per_page: 1
-      })
-
-      return result.data[0]
+/**
+ * @param {{ owner: string, repo: string, tag: string, allowPreRelease }} options
+ */
+async function getReleaseByTag(options) {
+  let release
+  try {
+    release = await octokit.repos.getReleaseByTag(options)
+  } catch (err) {
+    if (err.status === 404) {
+      throw new Error(`not found release ${options.owner}/${options.repo}#${options.tag}`)
     }
 
+    throw err
+  }
+
+  if (release.data.prerelease && !options.allowPreRelease) {
+    throw new Error(`pre-release ${options.owner}/${options.repo}#${options.tag} not allowed`)
+  }
+
+  return release.data
+}
+
+/**
+ * @param {{ owner: string, repo: string, allowPreRelease }} options
+ */
+async function getLatestRelease(options) {
+  if (options.allowPreRelease) {
+    const preReleaseList = await octokit.repos.listReleases({
+      owner: argv.owner,
+      repo: argv.repo,
+      per_page: 1
+    })
+
+    if (preReleaseList.data.length === 0) {
+      throw new Error(`not found latest release/pre-release for ${options.owner}/${options.repo}`)
+    }
+
+    return preReleaseList.data[0]
+  }
+
+  try {
     const latest = await octokit.repos.getLatestRelease({
       owner: argv.owner,
       repo: argv.repo,
     })
 
     return latest.data
+
+  } catch (err) {
+    if (err.status === 404) {
+      throw new Error(`not found latest release for ${options.owner}/${options.repo}`)
+    }
+
+    throw err
+  }
+}
+
+Promise.resolve()
+  .then(async () => {
+    if (argv['release'] && argv['release'] !== 'latest') {
+      return getReleaseByTag({
+        owner: argv.owner,
+        repo: argv.repo,
+        tag: argv['release'],
+        allowPreRelease: !!argv['allow-pre-release']
+      })
+    }
+
+    return getLatestRelease({
+      owner: argv.owner,
+      repo: argv.repo,
+      allowPreRelease: !!argv['allow-pre-release']
+    })
   })
   .then(async (release) => {
     if (release.assets.length === 0) {
