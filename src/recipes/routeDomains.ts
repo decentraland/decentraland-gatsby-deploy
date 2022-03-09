@@ -11,9 +11,9 @@ import {
 import { isCloudflareDomain } from "../cloudflare/cdn";
 
 /**
- * Create Route53 and Cloudflare record to expose services
+ * Create Route53 and Cloudflare record to a aws.cloudfront.Distribution
  */
-export function routeToCloudfronDistribution(domains: string[], distribution: Pick<aws.cloudfront.Distribution, "domainName" | "hostedZoneId">) {
+export function routeToCloudfrontDistribution(domains: string[], distribution: Pick<aws.cloudfront.Distribution, "domainName" | "hostedZoneId">) {
   const records: (aws.route53.Record | cloudflare.Record)[] = []
 
   for (const domain of domains) {
@@ -26,6 +26,9 @@ export function routeToCloudfronDistribution(domains: string[], distribution: Pi
   return records
 }
 
+/**
+ * Create Route53 and Cloudflare record to a aws.lb.LoadBalancer
+ */
 export function routeToLoadBalancer(domains: string[], loadBalancer: Pick<aws.lb.LoadBalancer, "dnsName" | "zoneId">) {
   const records: (aws.route53.Record | cloudflare.Record)[] = []
 
