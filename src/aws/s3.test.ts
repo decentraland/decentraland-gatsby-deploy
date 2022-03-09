@@ -30,27 +30,27 @@ describe(`src/aws/s3`, () => {
       const rules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "https", ReplaceKeyWith: "dao/" }
         },
       ]
 
       const hostRules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { HostName: 'example.com', ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyWith: "dao/" }
         },
       ]
 
       const hostProtocolRules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "http", HostName: 'example.com', ReplaceKeyWith: "dao/" }
         },
       ]
 
       expect(createRoutingRules(map)).toEqual(rules)
       expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
-      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'http' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "/next/$1" using ReplaceKeyPrefixWith`, () => {
@@ -58,27 +58,27 @@ describe(`src/aws/s3`, () => {
       const rules = [
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "https", ReplaceKeyPrefixWith: "documentation/" }
         },
       ]
 
       const hostRules = [
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
         },
       ]
 
       const hostProtocolRules = [
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "http", HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
         },
       ]
 
       expect(createRoutingRules(map)).toEqual(rules)
       expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
-      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'http' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "https://example.com/next/" using Protocol, HostName and ReplaceKeyWith`, () => {
@@ -117,11 +117,11 @@ describe(`src/aws/s3`, () => {
       const rules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "https", ReplaceKeyWith: "dao/" }
         },
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "https", ReplaceKeyPrefixWith: "documentation/" }
         },
         {
           Condition: { KeyPrefixEquals: "avatars/" },
@@ -136,11 +136,11 @@ describe(`src/aws/s3`, () => {
       const hostRules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { HostName: 'example.com', ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyWith: "dao/" }
         },
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
         },
         {
           Condition: { KeyPrefixEquals: "avatars/" },
@@ -155,11 +155,11 @@ describe(`src/aws/s3`, () => {
       const hostProtocolRules = [
         {
           Condition: { KeyPrefixEquals: "agora/" },
-          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyWith: "dao/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyWith: "dao/" }
         },
         {
           Condition: { KeyPrefixEquals: "docs/" },
-          Redirect: { HostName: 'example.com', Protocol: 'https', ReplaceKeyPrefixWith: "documentation/" }
+          Redirect: { Protocol: "https", HostName: 'example.com', ReplaceKeyPrefixWith: "documentation/" }
         },
         {
           Condition: { KeyPrefixEquals: "avatars/" },
