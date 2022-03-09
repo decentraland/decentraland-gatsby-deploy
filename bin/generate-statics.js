@@ -33,8 +33,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .option('output-dir', {
     alias: 'o',
-    description: 'output directory',
-    demandOption: true
+    description: 'output directory by default use the same sa the source-dir'
   })
   .option('webp', {
     type: 'boolean',
@@ -112,7 +111,7 @@ function createDir() {
 Promise.resolve()
   .then(async () => {
     const sourceDir = path.resolve(process.cwd(), argv['source-dir'])
-    const destinationDir = path.resolve(process.cwd(), argv['output-dir'])
+    const destinationDir = argv['output-dir'] ? path.resolve(process.cwd(), argv['output-dir']) : sourceDir
     const mapStream = argv['source-map'] && fs.createWriteStream(path.resolve(process.cwd(), argv['source-map']))
     const mapFormat = argv['source-map-format'] || path.extname(argv['source-map'] || '').slice(1)
     const logger = createFileLogger()
