@@ -189,7 +189,7 @@ Promise.resolve()
 
         await writeFile(destination, destinationBuffer)
 
-        if (['.jpg', '.jpeg', '.png'].includes(sourceExtension)) {
+        if (!!argv.webp && ['.jpg', '.jpeg', '.png'].includes(sourceExtension)) {
           const webpBuffer = await sharp(sourceBuffer).webp({ }).toBuffer()
           const webpDestination = path.resolve(destinationTypeDir, destinationName + '-' + destinationHash + '.webp')
 
