@@ -23,7 +23,8 @@ import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
 import { buildContentBucket } from "./buildContentBucket";
 import { buildCloudfrontDistribution } from "./buildCloudfrontDistribution";
-import { routeToCloudfronDistribution } from "./routeDomains";
+import { routeToCloudfrontDistribution } from "./routeDomains";
+import { createRoutingRules } from "../aws/s3";
 
 const prometheus = new StackReference(`prometheus-${env}`)
 
@@ -297,7 +298,13 @@ export async function buildGatsby(config: GatsbyOptions) {
       .map(pathPattern => httpProxyBehavior(pathPattern, contentProxy[pathPattern], staticLambdaOptions)),
   ]
 
-  const bucket = buildContentBucket(config)
+  const bucket = buildContentBucket({
+    name: config.name,
+    routingRules: createRoutingRules(
+      config.contentRoutingRules,
+      { hostname: serviceDomain }
+    )
+  })
 
   // add bucket to the origin list
   serviceOrigins = [
@@ -316,7 +323,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   /**
    * Create DNS records
    */
-  const records = routeToCloudfronDistribution(domains, cdn.distribution)
+  const records = routeToCloudfrontDistribution(domains, cdn.distribution)
 
   // Export properties from this stack. This prints them at the end of `pulumi up` and
   // makes them easier to access from the pulumi.com.

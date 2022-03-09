@@ -37,7 +37,7 @@ import * as aws from '@pulumi/aws'
  *    ]
  * ```
  */
-export function routingRules(redirects: Record<string, string> = {}, options: { hostname?: string, protocol?: 'https' | 'http' } = {}): aws.s3.RoutingRule[] {
+export function createRoutingRules(redirects: Record<string, string> = {}, options: { hostname?: string, protocol?: 'https' | 'http' } = {}): aws.s3.RoutingRule[] {
   return Object.keys(redirects)
     .filter((origin) =>{
       return origin.startsWith('/') && origin.endsWith('/*') && (
@@ -63,9 +63,7 @@ export function routingRules(redirects: Record<string, string> = {}, options: { 
           Redirect.HostName = options.hostname
         }
 
-        if (options.protocol) {
-          Redirect.Protocol = options.protocol
-        }
+        Redirect.Protocol = options.protocol ?? 'https'
       }
 
       if (path.endsWith('/$1')) {

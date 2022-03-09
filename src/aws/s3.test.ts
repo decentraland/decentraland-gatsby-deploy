@@ -1,13 +1,13 @@
-import { routingRules } from './s3'
+import { createRoutingRules } from './s3'
 
 describe(`src/aws/s3`, () => {
   describe(`routingRules`, () => {
 
     test(`should accept an empty map`, () => {
-      expect(routingRules()).toEqual([])
-      expect(routingRules({})).toEqual([])
-      expect(routingRules({}, { hostname: 'example.com' })).toEqual([])
-      expect(routingRules({}, { hostname: 'example.com', protocol: 'https' })).toEqual([])
+      expect(createRoutingRules()).toEqual([])
+      expect(createRoutingRules({})).toEqual([])
+      expect(createRoutingRules({}, { hostname: 'example.com' })).toEqual([])
+      expect(createRoutingRules({}, { hostname: 'example.com', protocol: 'https' })).toEqual([])
     })
 
     test(`should ignore invalid maps key`, () => {
@@ -20,9 +20,9 @@ describe(`src/aws/s3`, () => {
           '/pat3/*': 'invalid/$1',
       }
 
-      expect(routingRules(map)).toEqual([])
-      expect(routingRules(map, { hostname: 'example.com' })).toEqual([])
-      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual([])
+      expect(createRoutingRules(map)).toEqual([])
+      expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual([])
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual([])
     })
 
     test(`should map "/prev/*" => "/next/" using ReplaceKeyWith`, () => {
@@ -48,9 +48,9 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
-      expect(routingRules(map)).toEqual(rules)
-      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
-      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
+      expect(createRoutingRules(map)).toEqual(rules)
+      expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "/next/$1" using ReplaceKeyPrefixWith`, () => {
@@ -76,9 +76,9 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
-      expect(routingRules(map)).toEqual(rules)
-      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
-      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
+      expect(createRoutingRules(map)).toEqual(rules)
+      expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
 
     test(`should map "/prev/*" => "https://example.com/next/" using Protocol, HostName and ReplaceKeyWith`, () => {
@@ -90,7 +90,7 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
-      expect(routingRules(map)).toEqual(rules)
+      expect(createRoutingRules(map)).toEqual(rules)
     })
 
     test(`should map "/prev/*" => "https://example.com/next/" using Protocol, HostName and ReplaceKeyPrefixWith`, () => {
@@ -103,7 +103,7 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
-      expect(routingRules(map)).toEqual(rules)
+      expect(createRoutingRules(map)).toEqual(rules)
     })
 
     test(`should accept multiples redirection`, () => {
@@ -171,9 +171,9 @@ describe(`src/aws/s3`, () => {
         },
       ]
 
-      expect(routingRules(map)).toEqual(rules)
-      expect(routingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
-      expect(routingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
+      expect(createRoutingRules(map)).toEqual(rules)
+      expect(createRoutingRules(map, { hostname: 'example.com' })).toEqual(hostRules)
+      expect(createRoutingRules(map, { hostname: 'example.com', protocol: 'https' })).toEqual(hostProtocolRules)
     })
   })
 })

@@ -1,10 +1,10 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
-import { routingRules } from "../aws/s3";
 import { getServiceName, getServiceSubdomain } from "../utils";
 import { GatsbyOptions } from "./types";
 
-export type ContentBucketOptions = Pick<GatsbyOptions,  'name' | 'usePublicTLD' | 'contentRoutingRules'> &
+export type ContentBucketOptions = Pick<GatsbyOptions,  'name'> &
+  Pick<aws.types.input.s3.BucketWebsite, 'routingRules'> &
   {
     /**
      * The [canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply.
@@ -18,16 +18,15 @@ export type ContentBucketOptions = Pick<GatsbyOptions,  'name' | 'usePublicTLD' 
      * - **`log-delivery-write`**: The LogDelivery group gets WRITE and READ_ACP permissions on the bucket. For more information about logs.
      *
      */
-    acl: pulumi.Input<'private' | 'public-read' | 'public-read-write' | 'aws-exec-read' | 'authenticated-read' | 'log-delivery-write'>
+    acl?: pulumi.Input<'private' | 'public-read' | 'public-read-write' | 'aws-exec-read' | 'authenticated-read' | 'log-delivery-write'>,
   }
 
 /**
  * Create a S3 bucket
  */
-export function buildContentBucket(config: Pick<GatsbyOptions,  'name' | 'usePublicTLD' | 'contentRoutingRules'> & { acl: 'private' | 'public-read' | 'public-read-write' | 'aws-exec-read' | 'authenticated-read' | 'log-delivery-write' }) {
+export function buildContentBucket(config: ContentBucketOptions) {
   const serviceName = getServiceName(config)
   const serviceDomain = getServiceSubdomain(config)
-  const contentRoutingRules = routingRules(config.contentRoutingRules, { hostname: serviceDomain, protocol: 'https' })
   // contentBucket is the S3 bucket that the website's contents will be stored in.
   const contentBucket = new aws.s3.Bucket(`${serviceName}-website`, {
     acl: config.acl ?? "private",
@@ -41,7 +40,7 @@ export function buildContentBucket(config: Pick<GatsbyOptions,  'name' | 'usePub
     website: {
       indexDocument: "index.html",
       errorDocument: "404.html",
-      ...(contentRoutingRules.length > 0 && { routingRules: contentRoutingRules })
+      routingRules: config.routingRules
     },
 
     corsRules: [
