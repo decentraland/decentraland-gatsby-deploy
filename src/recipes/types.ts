@@ -28,7 +28,7 @@ export type GatsbyOptions = {
    *      '/': '/en/',
    *      '/me': '/en/me',
    *      '/submit': '/en/submit',
-   *      '/secment.js': '/s.js',
+   *      '/segment.js': '/s.js',
    *      '/builder/': 'https://builder.decentraland.org/'
    *      '/builder/segment.js': 'https://builder.decentraland.org/segment.js',
    *    }

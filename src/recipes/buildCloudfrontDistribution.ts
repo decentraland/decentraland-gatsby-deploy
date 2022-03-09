@@ -7,6 +7,9 @@ export type CloudfrontDistributionOptions =
   Pick<GatsbyOptions, "name" | "usePublicTLD" | 'additionalDomains'> &
   Pick<aws.cloudfront.DistributionArgs, "origins" | "defaultCacheBehavior" | "orderedCacheBehaviors">
 
+/**
+ * Creates a cloudflare distribution
+ */
 export function buildCloudfrontDistribution(config: CloudfrontDistributionOptions) {
   const serviceName = getServiceName(config)
   const serviceDomain = getServiceSubdomain(config)
