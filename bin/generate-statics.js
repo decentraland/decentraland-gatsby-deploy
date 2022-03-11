@@ -110,12 +110,19 @@ function createDir() {
 
 Promise.resolve()
   .then(async () => {
-    const sourceDir = path.resolve(process.cwd(), argv['source-dir'])
-    const destinationDir = argv['output-dir'] ? path.resolve(process.cwd(), argv['output-dir']) : sourceDir
-    const mapStream = argv['source-map'] && fs.createWriteStream(path.resolve(process.cwd(), argv['source-map']))
-    const mapFormat = argv['source-map-format'] || path.extname(argv['source-map'] || '').slice(1)
+    const cwd = cwd
+    const sourceDir = path.resolve(cwd, argv['source-dir'])
+    const destinationDir = argv['output-dir'] ? path.resolve(cwd, argv['output-dir']) : sourceDir
     const logger = createFileLogger()
+
+    const mapOutput = argv['source-map'] && path.resolve(cwd, argv['source-map'])
+    const mapStream = argv['source-map'] && fs.createWriteStream(mapOutput)
+    const mapFormat = argv['source-map-format'] || path.extname(argv['source-map'] || '').slice(1)
     const mapper = createFileMapper(mapStream, mapFormat)
+    if (mapOutput) {
+      path.relative(cwd, mapOutput)
+    }
+
     const hasher = createHasher('md5')
     const mkdir = createDir()
 
@@ -197,12 +204,12 @@ Promise.resolve()
 
           if (webpBuffer.length <= sourceBuffer.length) {
             await writeFile(webpDestination, webpBuffer)
-            await logger(source, sourceBuffer.length, path.relative(sourceDir, webpDestination), webpBuffer.length)
+            await logger(source, sourceBuffer.length, path.relative(cwd, webpDestination), webpBuffer.length)
           }
         }
 
         await mapper(source, path.relative(destinationDir, destination))
-        await logger(source, sourceBuffer.length, path.relative(sourceDir, destination), destinationBuffer.length)
+        await logger(source, sourceBuffer.length, path.relative(cwd, destination), destinationBuffer.length)
 
         return
       }, { concurrency: 10 })
