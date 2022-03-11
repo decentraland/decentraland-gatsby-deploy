@@ -110,7 +110,7 @@ function createDir() {
 
 Promise.resolve()
   .then(async () => {
-    const cwd = cwd
+    const cwd = process.cwd()
     const sourceDir = path.resolve(cwd, argv['source-dir'])
     const destinationDir = argv['output-dir'] ? path.resolve(cwd, argv['output-dir']) : sourceDir
     const logger = createFileLogger()
