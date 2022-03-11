@@ -159,6 +159,8 @@ Promise.resolve()
             if (sourceBuffer.length <= destinationBuffer.length) {
               destinationBuffer = sourceBuffer
             }
+
+            destinationExtension = '.jpg'
             break
 
           case '.png':
