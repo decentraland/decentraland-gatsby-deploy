@@ -28,7 +28,7 @@ Creates a [S3 bucket](https://aws.amazon.com/s3/).
 
 | return                 | type                    | description                 |
 |------------------------|-------------------------|-----------------------------|
-|                        | `Object                 | bucket definitions          |
+|                        | `Object`                | bucket definitions          |
 | `.bucketName`          | `pulumi.Output<string>` | bucket name                 |
 | `.contentBucket`       | `aws.s3.Bucket`         | bucket configuration        |
 | `.contentBucketPolicy` | `aws.s3.BucketPolicy`   | bucket policy configuration |
@@ -72,7 +72,7 @@ Route a domain into a aws Load Balancer
 
 | params          | type                                              | description          |
 |-----------------|---------------------------------------------------|----------------------|
-| `domains`       | `string[]                                         | domain list          |
+| `domains`       | `string[]`                                        | domain list          |
 | `distribution`  | `Pick<aws.lb.LoadBalancer, "dnsName" | "zoneId">` | load balancer target |
 
 | returns  | type                                         | description             |
