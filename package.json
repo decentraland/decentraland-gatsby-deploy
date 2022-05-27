@@ -32,7 +32,11 @@
       {
         "name": "master"
       },
-      { "name": "1.x.x", "range": "1.x.x", "channel": "1.x.x"},
+      {
+        "name": "1.x.x",
+        "range": "1.x.x",
+        "channel": "1.x.x"
+      },
       {
         "name": "{feat,fix}/*",
         "channel": "alpha",
@@ -58,7 +62,7 @@
   },
   "dependencies": {
     "colors": "^1.4.0",
-    "dcl-ops-lib": "^5.20.0",
+    "dcl-ops-lib": "^5.23.3",
     "yaml": "^1.10.2"
   }
 }
