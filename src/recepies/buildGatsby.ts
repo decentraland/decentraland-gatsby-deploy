@@ -15,7 +15,7 @@ import { getVpc } from "dcl-ops-lib/vpc";
 import { getPrivateSubnetIds } from "dcl-ops-lib/network"
 
 import { variable, currentStackConfigurations } from "../pulumi/env"
-import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, uniqueOrigins } from "../aws/cloudfront";
+import { albOrigin, serverBehavior, bucketOrigin, defaultStaticContentBehavior, immutableContentBehavior, httpOrigin, httpProxyBehavior, BehaviorOptions, uniqueOrigins, staticSecurityHeadersPolicy, SecurityHeadersOptions } from "../aws/cloudfront";
 import { addBucketResource, addEmailResource, createUser } from "../aws/iam";
 import { createHostForwardListenerRule } from "../aws/alb";
 import { getCluster } from "../aws/ecs";
@@ -26,7 +26,6 @@ import { createRecordForCloudfront, createServicSubdomain } from "../aws/route53
 import { routingRules } from "../aws/s3";
 import { createMetricsSecurityGroupId } from "../aws/ec2";
 import { createDockerImage } from "../aws/ecr";
-import { createSecurityHeadersLambda } from "../aws/lambda";
 import { createImmutableCachePageRule } from "../cloudflare/pageRule";
 
 const prometheus = new StackReference(`prometheus-${env}`)
@@ -63,16 +62,11 @@ export async function buildGatsby(config: GatsbyOptions) {
     tags,
   })
 
-  const staticLambdaOptions: BehaviorOptions = {}
-  const securityHeaders = createSecurityHeadersLambda(serviceName, { tags, logGroup })
+  const behaviorOptions: BehaviorOptions = {}
   if (config.useSecurityHeaders) {
-    staticLambdaOptions.lambdaFunctionAssociations = [
-      {
-        includeBody: false,
-        eventType: 'viewer-response',
-        lambdaArn: securityHeaders.qualifiedArn
-      }
-    ]
+    const securityHeadersOptions: SecurityHeadersOptions = config.useSecurityHeaders === true ? {} : config.useSecurityHeaders
+    const responseHeadersPolicy = staticSecurityHeadersPolicy(serviceName, securityHeadersOptions)
+    behaviorOptions.responseHeadersPolicyId = responseHeadersPolicy.id
   }
 
   if (config.serviceImage && config.serviceSource) {
@@ -202,7 +196,7 @@ export async function buildGatsby(config: GatsbyOptions) {
 
           serviceOrderedCacheBehaviors = [
             ...serviceOrderedCacheBehaviors,
-            ...useBucket.map(path => immutableContentBehavior(path, bucket, staticLambdaOptions))
+            ...useBucket.map(path => immutableContentBehavior(path, bucket, behaviorOptions))
           ]
         }
       }
@@ -301,7 +295,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   serviceOrderedCacheBehaviors = [
     ...serviceOrderedCacheBehaviors,
     ...Object.keys(contentProxy)
-      .map(pathPattern => httpProxyBehavior(pathPattern, contentProxy[pathPattern], staticLambdaOptions)),
+      .map(pathPattern => httpProxyBehavior(pathPattern, contentProxy[pathPattern], behaviorOptions)),
   ]
 
   const contentRoutingRules = routingRules(config.contentRoutingRules, { hostname: serviceDomain, protocol: 'https' })
@@ -359,7 +353,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   // logsBucket is an S3 bucket that will contain the CDN's request logs.
   const logs = new aws.s3.Bucket(serviceName + "-logs", { acl: "log-delivery-write" });
   const cdn = all([
-    defaultStaticContentBehavior(contentBucket, staticLambdaOptions),
+    defaultStaticContentBehavior(contentBucket, behaviorOptions),
     all(serviceOrigins).apply(uniqueOrigins),
     all(serviceOrderedCacheBehaviors),
     logs.bucketDomainName

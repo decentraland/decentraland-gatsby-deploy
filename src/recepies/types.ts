@@ -1,5 +1,6 @@
 import type * as awsx from "@pulumi/awsx";
 import type * as pulumi from "@pulumi/pulumi";
+import { SecurityHeadersOptions } from "../aws/cloudfront";
 import { HttpProxyOrigin } from "../aws/types";
 
 export type GatsbyOptions = {
@@ -243,5 +244,5 @@ export type GatsbyOptions = {
    *  - Access-Control-Allow-Methods
    *
    */
-  useSecurityHeaders?: boolean
+  useSecurityHeaders?: boolean | SecurityHeadersOptions
 };
