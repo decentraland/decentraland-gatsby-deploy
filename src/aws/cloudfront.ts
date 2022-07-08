@@ -376,7 +376,7 @@ export function staticSecurityHeadersPolicy(serviceName: string, options: Securi
         contentSecurityPolicy: [
           `base-uri 'self'`,
           `child-src https:`,
-          `connect-src https:`,
+          `connect-src https: wss:`,
           `default-src 'none'`,
           `font-src https: data:`,
           `form-action 'self'`,
