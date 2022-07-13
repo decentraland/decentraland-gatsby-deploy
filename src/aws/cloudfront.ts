@@ -332,7 +332,7 @@ export function staticSecurityHeadersPolicy(serviceName: string, options: Securi
 
       /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods */
       accessControlAllowMethods: {
-        items: options.accessControlAllowMethods ?? ["OPTIONS","HEAD","GET"]
+        items: options.accessControlAllowMethods ?? ["OPTIONS", "HEAD", "GET"]
       },
     },
 
@@ -470,8 +470,16 @@ export function staticContentBehavior(
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
-    allowedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
-    cachedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
+    allowedMethods: [
+      'HEAD',
+      'DELETE',
+      'POST',
+      'GET',
+      'OPTIONS',
+      'PUT',
+      'PATCH',
+    ],
+    cachedMethods: ['GET', 'HEAD', 'OPTIONS'],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -511,8 +519,16 @@ export function immutableContentBehavior(
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
-    allowedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
-    cachedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
+    allowedMethods: [
+      'HEAD',
+      'DELETE',
+      'POST',
+      'GET',
+      'OPTIONS',
+      'PUT',
+      'PATCH',
+    ],
+    cachedMethods: ['GET', 'HEAD', 'OPTIONS'],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
