@@ -470,8 +470,8 @@ export function staticContentBehavior(
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
-    allowedMethods: ["GET", "HEAD", "OPTIONS"],
-    cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    allowedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
@@ -511,8 +511,8 @@ export function immutableContentBehavior(
     targetOriginId,
     pathPattern,
     viewerProtocolPolicy: "redirect-to-https",
-    allowedMethods: ["GET", "HEAD", "OPTIONS"],
-    cachedMethods: ["GET", "HEAD", "OPTIONS"],
+    allowedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["PUT", "GET", "HEAD", "OPTIONS"],
     forwardedValues: {
       headers: [
         "Access-Control-Request-Headers",
