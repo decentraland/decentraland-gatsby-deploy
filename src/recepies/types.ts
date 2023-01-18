@@ -118,6 +118,11 @@ export type GatsbyOptions = {
   additionalDomains?: (string | null | undefined | false)[]
 
   /**
+   * Overwrite the default domain for the service
+   */
+  serviceDomain?: string
+
+  /**
    * Docker image used to create a fargate service,
    *
    * > This value will be injected as IMAGE env

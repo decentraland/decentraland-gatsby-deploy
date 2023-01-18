@@ -37,7 +37,7 @@ export async function buildGatsby(config: GatsbyOptions) {
   const serviceVersion = getServiceVersion()
   const decentralandDomain = config.usePublicTLD ? publicDomain : envDomain
   const serviceTLD = config.usePublicTLD ? publicTLD : envTLD
-  const serviceDomain = createServicSubdomain(serviceName, decentralandDomain)
+  const serviceDomain = config.serviceDomain ?? createServicSubdomain(serviceName, decentralandDomain)
   const emailDomains = []
   const domains = [ serviceDomain, ...(config.additionalDomains || []) ].filter(Boolean) as string[]
   const port = config.servicePort || 4000
